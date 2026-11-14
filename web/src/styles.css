@@ -34,4 +34,32 @@ button, select { font: inherit; color: inherit; min-height: 44px; border-radius:
 .drawer .close { float: right; } .drawer .died { color: var(--clay); font-weight: 700; }
 .drawer figure { margin: 8px 0 0; } .drawer svg { width: 100%; height: auto; background: var(--straw); border-radius: 8px; }
 .sources { margin-top: 16px; font-size: 0.85rem; }
+header nav { display: flex; gap: 8px; }
+[hidden] { display: none !important; }
+button[aria-pressed='true'] { background: var(--soil); color: var(--paper); }
+button:disabled { opacity: 0.5; cursor: default; }
+.map-wrap { position: relative; }
+.basemap-toggle { position: absolute; left: 8px; top: 8px; display: flex; box-shadow: 0 1px 4px rgba(107, 74, 43, 0.3); border-radius: 8px; }
+.basemap-toggle button { border-radius: 0; min-height: 36px; }
+.basemap-toggle button:first-child { border-radius: 8px 0 0 8px; } .basemap-toggle button:last-child { border-radius: 0 8px 8px 0; border-left: none; }
+.locate { display: flex; flex-wrap: wrap; align-items: center; gap: 8px; margin: 8px 0; }
+.analog-line { background: var(--paper); border-radius: 8px; padding: 8px 12px; border-left: 6px solid var(--sky); }
+.card .analog-odds { font-weight: 600; color: var(--sky); margin: 0.2em 0; }
+.card .whatif-note { font-size: 0.85rem; background: var(--straw); border-radius: 6px; padding: 2px 6px; display: inline-block; }
+.window { margin: 8px 0; }
+.window-date { font-weight: 600; margin: 0.2em 0; } .window .late { color: var(--clay); } .window .left { color: var(--leaf); }
+.window-bars { display: flex; align-items: flex-end; gap: 2px; height: 40px; background: var(--straw); border-radius: 6px; padding: 2px; }
+.window-bars .bar { flex: 1; background: var(--leaf); opacity: 0.55; border-radius: 2px 2px 0 0; }
+.window-bars .bar.latest { opacity: 1; outline: 2px solid var(--soil); }
+.window-axis { display: flex; justify-content: space-between; font-size: 0.75rem; }
+.timeline th.analog { background: var(--sky); color: var(--paper); border-radius: 4px; }
+.timeline th.corner { position: sticky; left: 0; background: var(--paper); z-index: 2; }
+.timeline th[scope='row'] { box-shadow: 2px 0 0 var(--straw); }
+.whatif { background: var(--paper); border-radius: 12px; padding: 14px; margin-top: 12px; border-left: 6px solid var(--sun); }
+.whatif .sliders { display: flex; flex-wrap: wrap; align-items: flex-end; gap: 16px; }
+.whatif label { display: flex; flex-direction: column; gap: 4px; min-width: 200px; flex: 1; }
+.whatif input[type='range'] { width: 100%; min-height: 44px; accent-color: var(--soil); }
+.about { background: var(--paper); border-radius: 12px; padding: 16px; margin-top: 12px; }
+.about dt { font-weight: 700; margin-top: 8px; } .about dd { margin: 0 0 0 16px; }
+.about a, .sources a { color: var(--sky); }
 .disclaimer { margin-top: 16px; }

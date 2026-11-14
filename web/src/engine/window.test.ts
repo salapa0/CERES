@@ -47,6 +47,9 @@ describe('sowing window (blueprint §9.9)', () => {
     expect(latestSafe(pts)).toBe('d5');
     expect(latestSafe([{ sowMonthDay: 'a', share: 0 }, { sowMonthDay: 'b', share: null }])).toBeNull();
     expect(latestSafe([{ sowMonthDay: 'a', share: null }])).toBeNull();
+    // Best odds below the tolerance: dates where nothing survived must not stretch the window.
+    const low = [0, 0.04, 0, 0].map((share, i) => ({ sowMonthDay: `d${i}`, share }));
+    expect(latestSafe(low)).toBe('d1');
   });
 
   test('days left counts to the latest safe date in the season under way', () => {

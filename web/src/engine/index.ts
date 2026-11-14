@@ -166,13 +166,18 @@ export function windowDates(): string[] {
 export interface WindowPoint { sowMonthDay: string; odds: OddsResult; share: number | null }
 export interface SowingWindow { points: WindowPoint[]; best: number | null; latest: string | null }
 
-/** Latest date whose share of good seasons is within WINDOW_TOLERANCE of the best; null if nothing ever worked. */
+/**
+ * Latest date whose share of good seasons is within WINDOW_TOLERANCE of the best; null if nothing ever worked.
+ * A date where no season was good never counts, even when the best is itself below the tolerance.
+ */
 export function latestSafe(points: { sowMonthDay: string; share: number | null }[]): string | null {
   const shares = points.map((p) => p.share).filter((s): s is number => s != null);
   const best = shares.length ? Math.max(...shares) : 0;
   if (best <= 0) return null;
   let latest: string | null = null;
-  for (const p of points) if (p.share != null && p.share >= best - WINDOW_TOLERANCE - 1e-9) latest = p.sowMonthDay;
+  for (const p of points) {
+    if (p.share != null && p.share > 0 && p.share >= best - WINDOW_TOLERANCE - 1e-9) latest = p.sowMonthDay;
+  }
   return latest;
 }
 

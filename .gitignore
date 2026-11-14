@@ -12,3 +12,9 @@ venv/
 data/cache/
 .DS_Store
 Thumbs.db
+
+# Web app
+node_modules/
+web/dist/
+pipeline/build.log
+.superpowers/

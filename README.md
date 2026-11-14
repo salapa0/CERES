@@ -29,7 +29,14 @@ soil and crop sources; the NASA data layers already cover the whole world.
 
 ## Status
 
-Repository just created. Stack: Python + Streamlit.
+A working core prototype, the **Field Time Machine**, is on branch `build/mvp-core`: tap a field in Thailand and
+it replays 25 past dry seasons for four post-rice crops with NASA POWER data. The feature table above is the
+original idea; the current design is in `docs/superpowers/specs/2026-11-14-field-time-machine-design.md`, and
+what is built, what is not, and how to run it is in **[docs/HANDOFF.md](docs/HANDOFF.md)**.
+
+```bash
+cd web && npm install && npm run dev
+```
 
 ## License
 

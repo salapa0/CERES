@@ -2,12 +2,12 @@
   {
     "id": "mungbean", "nameTh": "ถั่วเขียว", "nameEn": "Mung bean",
     "stages": { "ini": 15, "dev": 20, "mid": 25, "late": 10 },
-    "kc": { "ini": 0.4, "mid": 1.05, "end": 0.6 },
+    "kc": { "ini": 0.4, "mid": 1.05, "end": 0.35 },
     "rootDepthM": 0.6, "p": 0.45, "heatC": 40, "soilEffect": "nitrogen",
     "sources": [
-      "FAO-56 Table 12, 'Green gram and cowpeas' (Kc)",
-      "FAO-56 Table 22, 'Green gram and cowpeas' (root depth, p)",
-      "Stage lengths shortened from FAO-56 Table 11 (110 days) to a 70-day Thai variety: assumption",
+      "FAO-56 Table 12, 'Green Gram and Cowpeas': Kc mid 1.05, Kc end 0.35 (the 'harvested dry' value; 0.60 is for fresh harvest). Kc ini 0.4 = legume group value",
+      "FAO-56 Table 22, 'Green Gram and Cowpeas': Zr 0.6–1.0 m, p 0.45. Zr is the low end because paddy soils have a plough pan (Table 22 footnote: larger values only for soils without layering)",
+      "Stage lengths: assumption. FAO-56 Table 11 gives 20/30/30/20 days for a March Mediterranean planting (its printed total says 110, the stages sum to 100); Thai varieties ripen in about 70 days",
       "Heat limit: assumption"
     ],
     "assumption": true
@@ -18,9 +18,9 @@
     "kc": { "ini": 0.4, "mid": 1.15, "end": 0.6 },
     "rootDepthM": 0.5, "p": 0.5, "heatC": 40, "soilEffect": "nitrogen",
     "sources": [
-      "FAO-56 Table 11, 'Groundnut', dry-season planting (stage lengths)",
-      "FAO-56 Table 12, 'Groundnut (Peanut)' (Kc)",
-      "FAO-56 Table 22, 'Groundnut' (root depth, p)",
+      "FAO-56 Table 11, 'Groundnut', dry season, West Africa: 25/35/45/25 days",
+      "FAO-56 Table 12, 'Groundnut (Peanut)': Kc mid 1.15, Kc end 0.60. Kc ini 0.4 = legume group value",
+      "FAO-56 Table 22, 'Groundnut (Peanut)': Zr 0.5–1.0 m (low end, plough pan), p 0.50",
       "Heat limit: assumption"
     ],
     "assumption": true
@@ -31,9 +31,9 @@
     "kc": { "ini": 0.3, "mid": 1.2, "end": 0.6 },
     "rootDepthM": 1.0, "p": 0.55, "heatC": 38, "soilEffect": "uses",
     "sources": [
-      "FAO-56 Table 11, 'Maize (grain)', dry cool-season planting (stage lengths)",
-      "FAO-56 Table 12, 'Maize, Field (grain)' (Kc)",
-      "FAO-56 Table 22, 'Maize, Field (grain)' (root depth, p)",
+      "FAO-56 Table 11, 'Maize (grain)', October, India (dry, cool): 20/35/40/30 days",
+      "FAO-56 Table 12, 'Maize, Field (grain)': Kc mid 1.20, Kc end 0.60 (harvest at high grain moisture; 0.35 after full field drying). Kc ini 0.3 = cereal group value",
+      "FAO-56 Table 22, 'Maize, Field (grain)': Zr 1.0–1.7 m (low end, plough pan), p 0.55",
       "Heat limit: assumption"
     ],
     "assumption": true

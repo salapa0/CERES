@@ -1,0 +1,37 @@
+/* Functional base styles only. "Warm farm" palette from blueprint §11.1; the team restyles later. */
+:root {
+  --straw: #f6ebd3; --soil: #6b4a2b; --leaf: #4f8a3c; --sun: #e0a526;
+  --clay: #b5523b; --sky: #5b8db8; --paper: #fffdf7;
+}
+* { box-sizing: border-box; }
+body { margin: 0; background: var(--straw); color: var(--soil); font-family: 'Noto Sans Thai', system-ui, sans-serif; line-height: 1.5; }
+main { max-width: 960px; margin: 0 auto; padding: 16px; }
+header { display: flex; justify-content: space-between; align-items: center; }
+h1, h2, h3 { font-family: 'Noto Serif Thai', serif; margin: 0.4em 0 0.2em; }
+h1 { font-size: 1.8rem; margin: 0; }
+.subtitle { margin: 0; font-weight: 600; }
+.muted { opacity: 0.75; font-size: 0.9rem; margin: 0.2em 0; }
+button, select { font: inherit; color: inherit; min-height: 44px; border-radius: 8px; border: 1px solid var(--soil); background: var(--paper); padding: 0 12px; cursor: pointer; }
+.map { height: 360px; border-radius: 12px; overflow: hidden; border: 1px solid var(--soil); }
+.status { padding: 10px 14px; border-radius: 8px; background: var(--paper); }
+.status-outside, .status-error { border-left: 6px solid var(--clay); }
+.inputs { display: flex; flex-wrap: wrap; gap: 12px; margin: 12px 0; }
+.inputs label { display: flex; flex-direction: column; font-size: 0.9rem; gap: 4px; }
+.cards { display: grid; grid-template-columns: repeat(auto-fit, minmax(240px, 1fr)); gap: 12px; }
+.card { background: var(--paper); border-radius: 12px; padding: 14px; box-shadow: 0 1px 4px rgba(107, 74, 43, 0.2); border-top: 6px solid var(--soil); }
+.card-B { border-top-color: var(--leaf); } .card-C { border-top-color: var(--sun); }
+.card .crop { font-weight: 700; font-size: 1.1rem; margin: 0; }
+.card .odds { font-size: 1.4rem; font-weight: 700; margin: 0.2em 0; color: var(--leaf); }
+.card .effect { font-weight: 600; }
+.badge { font-size: 0.9rem; }
+.timeline { overflow-x: auto; background: var(--paper); border-radius: 12px; padding: 8px; }
+.timeline table { border-collapse: collapse; }
+.timeline th { font-size: 0.8rem; font-weight: 600; padding: 2px 4px; }
+.timeline th[scope='row'] { position: sticky; left: 0; background: var(--paper); text-align: left; white-space: nowrap; padding-right: 10px; z-index: 1; }
+.cell { min-height: 36px; width: 36px; padding: 0; border: none; background: transparent; font-size: 1.1rem; }
+.cell.failed { color: var(--clay); font-weight: 700; } .cell:hover { background: var(--straw); }
+.drawer { background: var(--paper); border-radius: 12px; padding: 14px; margin-top: 12px; border-left: 6px solid var(--sky); }
+.drawer .close { float: right; } .drawer .died { color: var(--clay); font-weight: 700; }
+.drawer figure { margin: 8px 0 0; } .drawer svg { width: 100%; height: auto; background: var(--straw); border-radius: 8px; }
+.sources { margin-top: 16px; font-size: 0.85rem; }
+.disclaimer { margin-top: 16px; }

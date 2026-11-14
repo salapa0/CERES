@@ -1,0 +1,50 @@
+[
+  {
+    "id": "mungbean", "nameTh": "ถั่วเขียว", "nameEn": "Mung bean",
+    "stages": { "ini": 15, "dev": 20, "mid": 25, "late": 10 },
+    "kc": { "ini": 0.4, "mid": 1.05, "end": 0.6 },
+    "rootDepthM": 0.6, "p": 0.45, "heatC": 40, "soilEffect": "nitrogen",
+    "sources": [
+      "FAO-56 Table 12, 'Green gram and cowpeas' (Kc)",
+      "FAO-56 Table 22, 'Green gram and cowpeas' (root depth, p)",
+      "Stage lengths shortened from FAO-56 Table 11 (110 days) to a 70-day Thai variety: assumption",
+      "Heat limit: assumption"
+    ],
+    "assumption": true
+  },
+  {
+    "id": "peanut", "nameTh": "ถั่วลิสง", "nameEn": "Peanut",
+    "stages": { "ini": 25, "dev": 35, "mid": 45, "late": 25 },
+    "kc": { "ini": 0.4, "mid": 1.15, "end": 0.6 },
+    "rootDepthM": 0.5, "p": 0.5, "heatC": 40, "soilEffect": "nitrogen",
+    "sources": [
+      "FAO-56 Table 11, 'Groundnut', dry-season planting (stage lengths)",
+      "FAO-56 Table 12, 'Groundnut (Peanut)' (Kc)",
+      "FAO-56 Table 22, 'Groundnut' (root depth, p)",
+      "Heat limit: assumption"
+    ],
+    "assumption": true
+  },
+  {
+    "id": "maize", "nameTh": "ข้าวโพดเลี้ยงสัตว์", "nameEn": "Field corn",
+    "stages": { "ini": 20, "dev": 35, "mid": 40, "late": 30 },
+    "kc": { "ini": 0.3, "mid": 1.2, "end": 0.6 },
+    "rootDepthM": 1.0, "p": 0.55, "heatC": 38, "soilEffect": "uses",
+    "sources": [
+      "FAO-56 Table 11, 'Maize (grain)', dry cool-season planting (stage lengths)",
+      "FAO-56 Table 12, 'Maize, Field (grain)' (Kc)",
+      "FAO-56 Table 22, 'Maize, Field (grain)' (root depth, p)",
+      "Heat limit: assumption"
+    ],
+    "assumption": true
+  },
+  {
+    "id": "sunnhemp", "nameTh": "ปอเทือง", "nameEn": "Sunn hemp",
+    "stages": { "ini": 15, "dev": 35, "mid": 0, "late": 0 },
+    "kc": { "ini": 0.4, "mid": 1.0, "end": 1.0 },
+    "rootDepthM": 0.8, "p": 0.5, "heatC": 99, "soilEffect": "organic",
+    "greenManure": true, "incorporateAfterDevDays": 0,
+    "sources": ["No FAO-56 entry. All values are assumptions: ploughed in at flowering, about 50 days after sowing"],
+    "assumption": true
+  }
+]

@@ -1,42 +1,70 @@
-# DEMETER — Field Shift
+# DEMETER: Field Time Machine
 
-**Climate-resilient crop rotation advice from NASA Earth data, starting with rain-fed rice farms in Thailand.**
+**What should a rain-fed rice farmer in Thailand plant after the harvest? Tap your field, and the app replays 25 past dry seasons of NASA data to show how each crop would have done.**
 
 NASA Space Apps Challenge 2026, challenge *Field Shift: Adapting Farms with NASA Data*.
 Submission deadline: Sunday 15 Nov 2026, 23:59 local time (team target: 20:00).
 
-## The idea
+## What it does
 
-Most rain-fed rice fields in Isan sit empty after the wet-season rice harvest. DEMETER tells a farmer which
-post-rice crop (mung bean, peanut, field corn, cassava, sunn hemp, vegetables) fits their field, using
-NASA climate, rainfall, soil-moisture, terrain and vegetation data. Each recommendation names the data
-behind it and how uncertain it is. Pilot area: Khon Kaen. Expanding to other countries means swapping the
-soil and crop sources; the NASA data layers already cover the whole world.
+Most rain-fed rice fields in Isan (northeast Thailand) sit empty after the wet-season harvest. The Field Time Machine
+asks a simple question for each field: *if you had sown this crop on this date in each of the last 25 years, how
+often would it have survived on the water in the soil and the rain that followed?*
 
-## Features (build order)
+- **Tap your field** (or use your location). The app finds the NASA POWER grid cell around it.
+- **Three strategy cards:** keep today's rice → bare field; the best legume (mung bean or peanut); the best other
+  crop (sunn hemp or field corn). Each card shows the odds ("survived 18 of 25 seasons"), the odds in years that
+  look like this one, the latest safe sowing date and the days left, the effect on the soil, a confidence badge,
+  what the data cannot see, and what to ask the local extension officer.
+- **This season looks like…:** the dry season under way is fetched live from NASA POWER and matched with the three
+  most similar past seasons.
+- **Time machine timeline:** every crop in every past season; tap one to see the soil-water chart and the day and
+  cause of failure.
+- **What-if sliders:** less rain or more heat, applied to every past season (not a forecast).
+- English by default, Thai one tap away, with Buddhist-era years.
 
-| # | Feature | Data |
-|---|---|---|
-| A | Rotation engine: scores yield, water, soil, resilience and income, weighted by the farmer's priorities | FAO GAEZ + C–I |
-| B | Explainable recommendations with uncertainty | all sources |
-| C | Climate baseline and how reliable the rain is | NASA POWER, GPM IMERG |
-| E | Soil moisture after the rice harvest | SMAP L4 root zone (GLDAS fallback) |
-| I | Terrain, slope and erosion risk | SRTM |
-| D | Climate trend projected out to 2040–2050 (simple trend lines, not a climate model) | POWER / ERA5 |
-| F | NDVI check of what is actually planted after rice | MODIS/VIIRS, Landsat |
-| S | Thai soil series (optional) | LDD 1:25,000 shapefile (CC BY-NC-ND) |
-| H | Map view (optional) | NASA Worldview |
+## Data and method
 
-## Status
+| Source | Used for |
+|---|---|
+| NASA POWER daily point API (`PRECTOTCORR`, `T2M_MAX`, `T2M_MIN`, `GWETROOT`), 0.5° × 0.625°, seasons 2001/02 to 2025/26 | Rain, temperature and starting root-zone wetness for every replay; the current season for the look-alike years |
+| FAO-56 (Allen et al. 1998), Tables 11, 12, 19, 22 | Crop stages, crop coefficients, root depth, depletion fraction, soil water; Hargreaves ET0 |
+| EOX Sentinel-2 cloudless 2016 (CC BY 4.0) | Satellite basemap (display only) |
+| OpenFreeMap / OpenStreetMap | Street basemap (display only) |
 
-A working core prototype, the **Field Time Machine**, is on branch `build/mvp-core`: tap a field in Thailand and
-it replays 25 past dry seasons for four post-rice crops with NASA POWER data. The feature table above is the
-original idea; the current design is in `docs/superpowers/specs/2026-11-14-field-time-machine-design.md`, and
-what is built, what is not, and how to run it is in **[docs/HANDOFF.md](docs/HANDOFF.md)**.
+Each replay is an FAO-56 root-zone water balance, day by day from the sowing date. A week of severe water stress
+after establishment, or three days of extreme heat at flowering, counts as a failed season. Lowland paddies get a
+small daily groundwater supply (capillary rise) that fades as the NASA soil wetness falls.
+
+## Limits
+
+- **Not calibrated.** The thresholds and the groundwater number are starting values. Use the results to compare
+  crops and sowing dates, not as exact probabilities.
+- **55 km cells.** The data is an average over a wide area; a single field can be wetter or drier.
+- **Some crop values are assumptions:** Thai mung bean stage lengths, all heat limits, every sunn hemp value.
+- Pests, disease, prices, labour and irrigation are not modelled. Soil texture and field type are the farmer's choice.
+
+## Run it
 
 ```bash
-cd web && npm install && npm run dev
+cd web
+npm install
+npm run dev        # http://localhost:5173/demeter-fieldshift/
+npm test
+npm run build      # typecheck + production build into web/dist
 ```
+
+Rebuild the NASA history (optional; it is committed, about 33 MB): `python pipeline/build_history.py`.
+`.github/workflows/deploy.yml` tests, builds and deploys `web/dist` to GitHub Pages on every push to `main`.
+
+Status, decisions and next steps for the team: **[docs/HANDOFF.md](docs/HANDOFF.md)**. Full design:
+`docs/superpowers/specs/2026-11-14-field-time-machine-design.md`.
+
+## Use of AI
+
+Parts of the code and text were written with an AI coding assistant (Claude, by Anthropic). The team reviews them and
+is responsible for the content. The app itself does not use AI to compute results: every number comes from the FAO-56
+formulas in `web/src/engine/`.
 
 ## License
 

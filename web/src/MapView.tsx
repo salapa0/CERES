@@ -15,8 +15,8 @@ const SATELLITE_CREDIT =
 
 export interface MapPoint { lat: number; lon: number; fly?: boolean }
 
-export function MapView({ point, onPick, lang }: {
-  point: MapPoint | null; onPick: (lat: number, lon: number) => void; lang: Lang;
+export function MapView({ point, onPick, lang, hint }: {
+  point: MapPoint | null; onPick: (lat: number, lon: number) => void; lang: Lang; hint?: string;
 }) {
   const box = useRef<HTMLDivElement>(null);
   const mapRef = useRef<maplibregl.Map | null>(null);
@@ -27,9 +27,11 @@ export function MapView({ point, onPick, lang }: {
   const [ready, setReady] = useState(false);
 
   useEffect(() => {
-    const map = new maplibregl.Map({ container: box.current!, style: STYLE, center: THAILAND_CENTER, zoom: 4.6 });
+    const map = new maplibregl.Map({
+      container: box.current!, style: STYLE, center: THAILAND_CENTER, zoom: 4.6, attributionControl: { compact: true },
+    });
     map.addControl(new maplibregl.NavigationControl(), 'top-right');
-    markerRef.current = new maplibregl.Marker({ color: '#B5523B' });
+    markerRef.current = new maplibregl.Marker({ color: '#1F5FBF' });
     map.on('click', (e) => pick.current(e.lngLat.lat, e.lngLat.lng));
     map.on('load', () => {
       map.addSource('satellite', { type: 'raster', tiles: [SATELLITE_TILES], tileSize: 256, maxzoom: 14, attribution: SATELLITE_CREDIT });
@@ -62,7 +64,8 @@ export function MapView({ point, onPick, lang }: {
   return (
     <div className="map-wrap">
       <div ref={box} className="map" />
-      <div className="basemap-toggle" role="group">
+      {hint && !point && <p className="map-hint">{hint}</p>}
+      <div className="basemap-toggle" role="group" aria-label={`${t(lang, 'map.satellite')} / ${t(lang, 'map.streets')}`}>
         <button aria-pressed={satellite} disabled={!ready} onClick={() => setSatellite(true)}>{t(lang, 'map.satellite')}</button>
         <button aria-pressed={!satellite} onClick={() => setSatellite(false)}>{t(lang, 'map.streets')}</button>
       </div>

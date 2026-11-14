@@ -65,6 +65,13 @@ test('a loaded current season names its look-alike years and adds "years like th
   expect(screen.getAllByTestId('analog-odds')).toHaveLength(2);
 });
 
+test('the summary names the best crop and its odds, and calls a dry place risky', () => {
+  const { rerender } = render(<Results cell={cell([season(2015, 5, 0.8), season(2016, 5, 0.8)])} lang="en" />);
+  expect(screen.getByTestId('summary')).toHaveTextContent(/is the best bet here: it survived 2 of 2/);
+  rerender(<Results cell={cell([season(2015, 0, 0.3), season(2016, 0, 0.3)])} lang="en" />);
+  expect(screen.getByTestId('summary')).toHaveTextContent(/Risky here/);
+});
+
 test('a failed live fetch says so instead of showing look-alike years', () => {
   render(<Results cell={cell([season(2015, 5, 0.8)])} lang="en" current="error" />);
   expect(screen.getByText(/Could not fetch this season/)).toBeInTheDocument();

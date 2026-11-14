@@ -3,6 +3,7 @@ import { About } from './About';
 import { cellForPoint, fetchCurrentSeason, loadCell, loadGrid } from './data';
 import type { CellData, Grid } from './engine';
 import { t, type Key, type Lang } from './i18n';
+import { BrandMark, FieldsArt, IconLocate } from './icons';
 import { MapView, type MapPoint } from './MapView';
 import { Results, type CurrentState } from './Results';
 
@@ -19,6 +20,8 @@ export default function App() {
   const [status, setStatus] = useState<Status>('idle');
   const [locate, setLocate] = useState<Locate>('idle');
   const request = useRef(0); // only the latest tap may update the page
+  const resultsRef = useRef<HTMLDivElement>(null);
+  const T = (key: Key) => t(lang, key);
 
   useEffect(() => {
     loadGrid().then(setGrid).catch(() => setStatus('error'));
@@ -27,6 +30,14 @@ export default function App() {
   useEffect(() => {
     document.documentElement.lang = lang;
   }, [lang]);
+
+  // When a field's results arrive below the fold (phones), bring their heading into view once.
+  useEffect(() => {
+    const el = resultsRef.current;
+    if (!cell || !el) return;
+    const top = el.getBoundingClientRect().top;
+    if (top > window.innerHeight * 0.75) el.scrollIntoView?.({ behavior: 'smooth', block: 'start' });
+  }, [cell]);
 
   async function onPick(lat: number, lon: number, fly = false) {
     if (!grid) return;
@@ -65,37 +76,63 @@ export default function App() {
     );
   }
 
+  const busy = status === 'loading' || status === 'loadingLive';
+
   return (
-    <main>
-      <header>
-        <div>
-          <h1>DEMETER</h1>
-          <p className="subtitle">{t(lang, 'app.subtitle')}</p>
-        </div>
-        <nav>
-          <button onClick={() => setPage(page === 'about' ? 'field' : 'about')} aria-pressed={page === 'about'}>
-            {t(lang, 'app.about')}
+    <>
+      <header className="topbar">
+        <button className="brand" onClick={() => setPage('field')} aria-label={`DEMETER · ${T('app.subtitle')}`}>
+          <BrandMark />
+          <span>
+            <strong>DEMETER</strong>
+            <small>{T('app.subtitle')}</small>
+          </span>
+        </button>
+        <nav className="topnav">
+          <button className="nav-link" onClick={() => setPage(page === 'about' ? 'field' : 'about')} aria-pressed={page === 'about'}>
+            {T('app.about')}
           </button>
-          <button className="lang" onClick={() => setLang(lang === 'th' ? 'en' : 'th')}>{lang === 'th' ? 'EN' : 'ไทย'}</button>
+          <div className="lang-switch" role="group" aria-label="Language / ภาษา">
+            <button aria-pressed={lang === 'en'} onClick={() => setLang('en')} lang="en">EN</button>
+            <button aria-pressed={lang === 'th'} onClick={() => setLang('th')} lang="th">ไทย</button>
+          </div>
         </nav>
       </header>
 
-      {page === 'about' && <About lang={lang} onBack={() => setPage('field')} />}
+      <main>
+        {page === 'about' && <About lang={lang} onBack={() => setPage('field')} />}
 
-      {/* Hidden rather than unmounted, so the map and the chosen field survive a visit to About. */}
-      <div hidden={page === 'about'}>
-        <p>{t(lang, 'app.tagline')}</p>
-        <MapView point={point} onPick={onPick} lang={lang} />
-        <div className="locate">
-          <button onClick={locateMe} disabled={!grid || locate === 'busy'}>
-            {locate === 'busy' ? t(lang, 'map.locating') : t(lang, 'map.locate')}
-          </button>
-          {locate === 'failed' && <span className="muted">{t(lang, 'map.locateFailed')}</span>}
+        {/* Hidden rather than unmounted, so the map and the chosen field survive a visit to About. */}
+        <div hidden={page === 'about'} style={{ display: 'contents' }}>
+          <section className="sky-band">
+            <FieldsArt />
+            <div className="sky-copy">
+              <h1>{T('hero.title')}</h1>
+              <p className="lead">{T('hero.short')}</p>
+            </div>
+            <button className="button primary" onClick={locateMe} disabled={!grid || locate === 'busy'}>
+              {locate === 'busy' ? <span className="spinner" /> : <IconLocate />}
+              {locate === 'busy' ? T('map.locating') : T('map.locate')}
+            </button>
+          </section>
+          {locate === 'failed' && <p className="notice notice-error"><span className="dot" />{T('map.locateFailed')}</p>}
+
+          <section className="card map-card" aria-label={T('map.title')}>
+            <MapView point={point} onPick={onPick} lang={lang} hint={T('map.hint')} />
+          </section>
+
+          {status !== 'idle' && (
+            <p className={`notice notice-${status}`} role="status">
+              {busy ? <span className="spinner" /> : <span className="dot" />}
+              {T(`app.${status}` as Key)}
+            </p>
+          )}
+          <div ref={resultsRef} className="results-anchor">
+            {cell && <Results cell={cell} lang={lang} current={current} />}
+          </div>
         </div>
-        {status !== 'idle' && <p className={`status status-${status}`}>{t(lang, `app.${status}` as Key)}</p>}
-        {cell && <Results cell={cell} lang={lang} current={current} />}
-      </div>
-      <p className="muted disclaimer">{t(lang, 'app.disclaimer')}</p>
-    </main>
+      </main>
+      <footer className="page-foot">{T('app.disclaimer')}</footer>
+    </>
   );
 }

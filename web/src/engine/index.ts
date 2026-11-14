@@ -2,6 +2,7 @@
 import cropsJson from '../data/crops.json';
 import {
   CAPILLARY_RISE_MAX_MM, FAIL_RET, GOOD_RET, HEAT_DAYS_FAIL, KILL_DAYS, KILL_KS, RAIN_EFFECTIVE_FRACTION, SOIL_TEXTURES,
+  WINDOW_FIRST, WINDOW_LAST, WINDOW_STEP_DAYS, WINDOW_TOLERANCE,
 } from './constants';
 import { extraterrestrialRadiation, hargreavesEt0 } from './et0';
 import type {
@@ -146,6 +147,63 @@ export function odds(outcomes: Outcome[]): OddsResult {
   for (const o of outcomes) r[o.kind]++;
   r.total = r.good + r.poor + r.failed;
   return r;
+}
+
+/** Sowing dates the window sweep tries: WINDOW_FIRST to WINDOW_LAST every WINDOW_STEP_DAYS days. */
+export function windowDates(): string[] {
+  const at = (md: string) => {
+    const [m, d] = md.split('-').map(Number);
+    return Date.UTC(m >= 8 ? 2001 : 2002, m - 1, d); // any non-leap season works as a calendar
+  };
+  const out: string[] = [];
+  for (let t = at(WINDOW_FIRST); t <= at(WINDOW_LAST); t += WINDOW_STEP_DAYS * DAY_MS) {
+    const d = new Date(t);
+    out.push(`${String(d.getUTCMonth() + 1).padStart(2, '0')}-${String(d.getUTCDate()).padStart(2, '0')}`);
+  }
+  return out;
+}
+
+export interface WindowPoint { sowMonthDay: string; odds: OddsResult; share: number | null }
+export interface SowingWindow { points: WindowPoint[]; best: number | null; latest: string | null }
+
+/**
+ * Latest date whose share of good seasons is within WINDOW_TOLERANCE of the best; null if nothing ever worked.
+ * A date where no season was good never counts, even when the best is itself below the tolerance.
+ */
+export function latestSafe(points: { sowMonthDay: string; share: number | null }[]): string | null {
+  const shares = points.map((p) => p.share).filter((s): s is number => s != null);
+  const best = shares.length ? Math.max(...shares) : 0;
+  if (best <= 0) return null;
+  let latest: string | null = null;
+  for (const p of points) {
+    if (p.share != null && p.share > 0 && p.share >= best - WINDOW_TOLERANCE - 1e-9) latest = p.sowMonthDay;
+  }
+  return latest;
+}
+
+/** Odds for one crop at every sweep date, and the latest safe sowing date (blueprint §9.9). */
+export function sowingWindow(
+  cell: CellData, crop: Crop, soil: SoilTexture, position: FieldPosition, whatIf?: WhatIf,
+): SowingWindow {
+  const points = windowDates().map((sowMonthDay) => {
+    const o = odds(cell.seasons.map((season) => replay({ cell, season, crop, sowMonthDay, soil, position, whatIf })));
+    return { sowMonthDay, odds: o, share: o.total > 0 ? o.good / o.total : null };
+  });
+  const shares = points.map((p) => p.share).filter((s): s is number => s != null);
+  return { points, best: shares.length ? Math.max(...shares) : null, latest: latestSafe(points) };
+}
+
+/**
+ * Whole days from `today` (local calendar date) to the latest safe date of the dry season under way.
+ * Negative when the date has passed; null from March to July, when no dry-season planting is under way.
+ */
+export function daysLeft(latest: string, today: Date): number | null {
+  const m = today.getMonth();
+  if (m >= 2 && m <= 6) return null;
+  const seasonYear = m >= 7 ? today.getFullYear() : today.getFullYear() - 1;
+  const [lm, ld] = latest.split('-').map(Number);
+  const target = Date.UTC(lm >= 8 ? seasonYear : seasonYear + 1, lm - 1, ld);
+  return Math.round((target - Date.UTC(today.getFullYear(), m, today.getDate())) / DAY_MS);
 }
 
 /** The three cards: A today's rice → bare, B best legume, C best other crop. */

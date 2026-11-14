@@ -7,9 +7,11 @@ import {
 import { analogOdds, analogsSplit, findAnalogs, type Analog, type CurrentSeason } from './engine/analog';
 import { DEFAULT_POSITION, DEFAULT_SOIL, DEFAULT_SOW, SOIL_TEXTURES } from './engine/constants';
 import { formatDate, formatMonthDay, formatSeason, t, type Key, type Lang } from './i18n';
+import { IconClose, IconHistory, IconLeaf, IconPin } from './icons';
 
 const SOW_DATES = ['11-01', '11-15', '12-01', '12-15', '01-01', '01-15', '02-01'];
 const ICON: Record<Outcome['kind'], string> = { good: '🌱', poor: '🍂', failed: '✖', nodata: '·' };
+const KINDS: Outcome['kind'][] = ['good', 'poor', 'failed', 'nodata'];
 const MIN_SEASONS_FOR_MEDIUM = 15;
 const REAL: WhatIf = { rainFactor: 1, dT: 0 };
 
@@ -17,6 +19,13 @@ const REAL: WhatIf = { rainFactor: 1, dT: 0 };
 export type CurrentState = 'loading' | 'error' | CurrentSeason;
 
 type Tr = (key: Key, vars?: Record<string, string | number>) => string;
+
+/** Colour of a card's odds: green when most seasons survived, amber for some, red for few. */
+function tone(odds: OddsResult | null): 'good' | 'mid' | 'low' | 'none' {
+  if (!odds || odds.total === 0) return 'none';
+  const share = odds.good / odds.total;
+  return share >= 0.6 ? 'good' : share >= 0.3 ? 'mid' : 'low';
+}
 
 export function Results({ cell, lang, current, today = new Date() }: {
   cell: CellData; lang: Lang; current?: CurrentState; today?: Date;
@@ -42,11 +51,18 @@ export function Results({ cell, lang, current, today = new Date() }: {
   const whatIfDesc = describeWhatIf(whatIf, lang);
 
   return (
-    <section className="results">
-      <h2>{T('field.title')} · {cell.lat.toFixed(2)}, {cell.lon.toFixed(2)}</h2>
-      <p className="muted">{T('field.cellNote')}</p>
+    <section className="results" aria-labelledby="results-title">
+      <div className="results-head">
+        <h2 id="results-title">{T('field.title')}</h2>
+        <span className="coord" title={`${T('results.chosen')} · ${T('field.cellNote')}`}>
+          <IconPin /> {cell.lat.toFixed(2)}, {cell.lon.toFixed(2)}
+        </span>
+      </div>
 
-      <div className="inputs">
+      <Summary strategies={strategies} crops={crops} windows={windows} lang={lang} today={today} whatIfDesc={whatIfDesc} />
+      <AnalogLine current={current} analogs={analogs} lang={lang} />
+
+      <div className="card inputs">
         <label>{T('input.sow')}
           <select value={sow} onChange={(e) => setSow(e.target.value)}>
             {SOW_DATES.map((d) => <option key={d} value={d}>{formatMonthDay(d, lang)}</option>)}
@@ -65,9 +81,7 @@ export function Results({ cell, lang, current, today = new Date() }: {
         </label>
       </div>
 
-      <AnalogLine current={current} analogs={analogs} lang={lang} />
-
-      <div className="cards">
+      <div className="cards" aria-label={T('results.options')}>
         {strategies.map((s) => (
           <Card key={s.id} s={s} crops={crops} lang={lang} today={today}
             window={s.cropId ? windows[s.cropId] : undefined}
@@ -76,38 +90,54 @@ export function Results({ cell, lang, current, today = new Date() }: {
         ))}
       </div>
 
-      <h3>{T('timeline.title')}</h3>
-      <p className="muted">{T('timeline.hint')} · {T('legend')}</p>
-      <div className="timeline">
-        <table>
-          <thead>
-            <tr>
-              <th scope="col" className="corner" />
-              {cell.seasons.map((s) => (
-                <th key={s.year} title={formatSeason(s.year, lang)}
-                  className={analogs.some((a) => a.year === s.year) ? 'analog' : undefined}>
-                  {formatSeason(s.year, lang).slice(2, 4)}
-                </th>
-              ))}
-            </tr>
-          </thead>
-          <tbody>
-            {crops.map((crop) => (
-              <tr key={crop.id} data-testid="timeline-row">
-                <th scope="row">{name(crop)}</th>
-                {timeline[crop.id].map((o, i) => (
-                  <td key={cell.seasons[i].year}>
-                    <button className={`cell ${o.kind}`} onClick={() => setOpen({ crop, season: cell.seasons[i] })}
-                      title={`${formatSeason(cell.seasons[i].year, lang)}: ${T(`outcome.${o.kind}`)}`}>
-                      {ICON[o.kind]}
-                    </button>
-                  </td>
+      <section className="card timeline-card">
+        <div className="card-heading">
+          <div>
+            <h3>{T('timeline.title')}</h3>
+            <p>{T('timeline.hint')}</p>
+          </div>
+        </div>
+        <ul className="legend" aria-label={T('legend')}>
+          {KINDS.map((k) => (
+            <li key={k}><span className={`swatch ${k}`}>{ICON[k]}</span>{T(`outcome.${k}`)}</li>
+          ))}
+          {analogs.length > 0 && <li><span className="swatch analog-swatch" />{T('timeline.analogKey')}</li>}
+        </ul>
+        <div className="timeline">
+          <table>
+            <thead>
+              <tr>
+                <th scope="col" className="corner" />
+                {cell.seasons.map((s) => (
+                  <th key={s.year} title={formatSeason(s.year, lang)}
+                    className={analogs.some((a) => a.year === s.year) ? 'analog' : undefined}>
+                    <span>{formatSeason(s.year, lang).slice(2, 4)}</span>
+                  </th>
                 ))}
               </tr>
-            ))}
-          </tbody>
-        </table>
-      </div>
+            </thead>
+            <tbody>
+              {crops.map((crop) => (
+                <tr key={crop.id} data-testid="timeline-row">
+                  <th scope="row">{name(crop)}</th>
+                  {timeline[crop.id].map((o, i) => {
+                    const isOpen = open?.crop.id === crop.id && open.season.year === cell.seasons[i].year;
+                    return (
+                      <td key={cell.seasons[i].year}>
+                        <button className={`cell ${o.kind}${isOpen ? ' is-open' : ''}`}
+                          onClick={() => setOpen({ crop, season: cell.seasons[i] })}
+                          title={`${formatSeason(cell.seasons[i].year, lang)}: ${T(`outcome.${o.kind}`)}`}>
+                          {ICON[o.kind]}
+                        </button>
+                      </td>
+                    );
+                  })}
+                </tr>
+              ))}
+            </tbody>
+          </table>
+        </div>
+      </section>
 
       {open && (
         <Drawer cell={cell} crop={open.crop} season={open.season} sow={sow} soil={soil} position={position}
@@ -116,7 +146,7 @@ export function Results({ cell, lang, current, today = new Date() }: {
 
       <WhatIfPanel value={whatIfNow} onChange={setWhatIf} lang={lang} />
 
-      <footer className="sources">
+      <footer className="sources" title={T('field.cellNote')}>
         <strong>{T('sources.title')}:</strong> {Object.values(cell.sources).join(' · ')}
         {current && typeof current === 'object' && <> · {T('sources.current')}</>}
         <br />{T('sources.method')}
@@ -136,14 +166,47 @@ const signed = (v: number) => (v > 0 ? `+${v}` : v < 0 ? `−${Math.abs(v)}` : '
 
 function AnalogLine({ current, analogs, lang }: { current?: CurrentState; analogs: Analog[]; lang: Lang }) {
   if (!current) return null;
-  if (current === 'loading') return <p className="analog-line muted">{t(lang, 'analog.loading')}</p>;
-  if (current === 'error' || !analogs.length) return <p className="analog-line muted">{t(lang, 'analog.error')}</p>;
+  if (current === 'loading') {
+    return <p className="analog-line is-quiet"><span className="spinner" /> {t(lang, 'analog.loading')}</p>;
+  }
+  if (current === 'error' || !analogs.length) return <p className="analog-line is-quiet">{t(lang, 'analog.error')}</p>;
   const years = analogs.map((a) => (lang === 'th' ? a.year + 543 : a.year)).join(', ');
   const asOf = formatDate(new Date(`${current.asOf}T00:00:00Z`), lang);
   return (
-    <p className="analog-line" data-testid="analog-line">
-      {t(lang, 'analog.line', { date: asOf, years })} <span className="muted">({t(lang, 'analog.how')})</span>
+    <p className="analog-line" data-testid="analog-line" title={t(lang, 'analog.how')}>
+      <IconHistory />
+      <span>{t(lang, 'analog.line', { date: asOf, years })}</span>
     </p>
+  );
+}
+
+/** One-sentence answer: the best crop here, its odds and the date to plant by. */
+function Summary({ strategies, crops, windows, lang, today, whatIfDesc }: {
+  strategies: Strategy[]; crops: Crop[]; windows: Record<string, SowingWindow>; lang: Lang; today: Date;
+  whatIfDesc: string | null;
+}) {
+  const T: Tr = (key, vars) => t(lang, key, vars);
+  const share = (s: Strategy) => (s.odds && s.odds.total ? s.odds.good / s.odds.total : -1);
+  const best = strategies.filter((s) => s.cropId && share(s) >= 0).sort((a, b) => share(b) - share(a))[0];
+  if (!best || !best.odds) return null;
+  const crop = crops.find((c) => c.id === best.cropId)!;
+  const name = lang === 'th' ? crop.nameTh : crop.nameEn;
+  const level = tone(best.odds);
+  const vars = { crop: name, good: best.odds.good, total: best.odds.total };
+  const w = windows[crop.id];
+  const left = w?.latest ? daysLeft(w.latest, today) : null;
+  return (
+    <div className={`card summary tone-${level}`} data-testid="summary">
+      <p className="summary-kicker">{T('summary.kicker')}</p>
+      <p className="summary-main">{level === 'low' ? T('summary.risky', vars) : T('summary.best', vars)}</p>
+      {level !== 'low' && w?.latest && (
+        <p className="summary-plant">
+          {T('card.window', { date: formatMonthDay(w.latest, lang) })}
+          {left != null && <> · {left > 1 ? T('card.daysLeft', { n: left }) : left === 1 ? T('card.dayLeft') : left === 0 ? T('card.lastDay') : T('card.late')}</>}
+        </p>
+      )}
+      {whatIfDesc && <p className="summary-note">{T('summary.whatIf')}</p>}
+    </div>
   );
 }
 
@@ -158,45 +221,53 @@ function Card({ s, crops, lang, today, window, analog, whatIfDesc }: {
   const split = analog != null && analogsSplit(analog);
   const level = !s.odds || s.odds.total < MIN_SEASONS_FOR_MEDIUM || split ? 'low' : 'medium';
   const why = s.odds && s.odds.total < MIN_SEASONS_FOR_MEDIUM ? 'low' : split ? 'split' : 'medium';
+  const pct = (n: number) => (s.odds && s.odds.total ? `${(n / s.odds.total) * 100}%` : '0%');
   return (
-    <article className={`card card-${s.id}`} data-testid="card">
-      <h3>{s.id} · {T(`card.${s.id}`)}</h3>
+    <article className={`card option option-${s.id} tone-${tone(s.odds)}`} data-testid="card">
+      <h3 className="option-top"><span className="option-tag">{s.id}</span>{T(`card.${s.id}`)}</h3>
       <p className="crop">{crop ? name(crop) : T('card.A.crop')}</p>
-      {!s.odds && <p>{T('card.A.body')}</p>}
+      {!s.odds && <p className="body">{T('card.A.body')}</p>}
       {s.odds && s.odds.total === 0 && <p className="odds">{T('card.noData')}</p>}
       {s.odds && s.odds.total > 0 && (
         <>
           <p className="odds">{T('card.odds', { good: s.odds.good, total: s.odds.total })}</p>
-          <p className="muted">{T('card.detail', { poor: s.odds.poor, failed: s.odds.failed })}</p>
+          <div className="meter" title={T('card.detail', { poor: s.odds.poor, failed: s.odds.failed })}>
+            <span className="m-good" style={{ width: pct(s.odds.good) }} />
+            <span className="m-poor" style={{ width: pct(s.odds.poor) }} />
+            <span className="m-failed" style={{ width: pct(s.odds.failed) }} />
+            <span className="sr-only">{T('card.detail', { poor: s.odds.poor, failed: s.odds.failed })}</span>
+          </div>
           {analog && analog.total > 0 && (
             <p className="analog-odds" data-testid="analog-odds">{T('card.analog', { good: analog.good, total: analog.total })}</p>
           )}
           {whatIfDesc && <p className="whatif-note">{T('card.whatIf', { desc: whatIfDesc })}</p>}
         </>
       )}
-      <p className="effect">{T(`effect.${s.soilEffect}`)}</p>
       {s.odds && window && <WindowInfo w={window} lang={lang} today={today} />}
+      {s.odds && <p className={`effect effect-${s.soilEffect}`}><IconLeaf />{T(`effect.${s.soilEffect}`)}</p>}
       {s.odds && (
-        <>
-          {alt && <p className="muted">{T('card.alt', { name: name(alt) })}</p>}
-          <p className={`badge badge-${level}`} title={T(`badge.why.${why}`)}>
-            {T('card.confidence')}: {T(`badge.${level}`)} <span className="muted">({T(`badge.why.${why}`)})</span>
+        <details className="more">
+          <summary>{T('card.more')}</summary>
+          {s.odds.total > 0 && <p className="odds-detail">{T('card.detail', { poor: s.odds.poor, failed: s.odds.failed })}</p>}
+          {window && <WindowChart w={window} lang={lang} />}
+          {alt && <p className="alt">{T('card.alt', { name: name(alt) })}</p>}
+          <p className={`pill badge-${level}`} title={T(`badge.why.${why}`)}>
+            {T('card.confidence')}: {T(`badge.${level}`)}
           </p>
-          <details>
-            <summary>{T('card.blind')}</summary>
-            <ul>
-              <li>{T('card.blind.1')}</li><li>{T('card.blind.2')}</li><li>{T('card.blind.3')}</li>
-              {crop?.assumption && <li>{T('card.estimate')}</li>}
-            </ul>
-            <p>{T('card.ask')}</p>
-          </details>
-        </>
+          <p className="badge-why">{T(`badge.why.${why}`)}</p>
+          <p className="more-h">{T('card.blind')}</p>
+          <ul>
+            <li>{T('card.blind.1')}</li><li>{T('card.blind.2')}</li><li>{T('card.blind.3')}</li>
+            {crop?.assumption && <li>{T('card.estimate')}</li>}
+          </ul>
+          <p>{T('card.ask')}</p>
+        </details>
       )}
     </article>
   );
 }
 
-/** "Plant by …", days left, and a small bar chart of the odds for each sowing date (blueprint §9.9). */
+/** "Plant by …" and the days left in the season under way (blueprint §9.9). */
 function WindowInfo({ w, lang, today }: { w: SowingWindow; lang: Lang; today: Date }) {
   const T: Tr = (key, vars) => t(lang, key, vars);
   const left = w.latest ? daysLeft(w.latest, today) : null;
@@ -207,19 +278,28 @@ function WindowInfo({ w, lang, today }: { w: SowingWindow; lang: Lang; today: Da
           {T('card.window', { date: formatMonthDay(w.latest, lang) })}
           {left != null && (
             <span className={left < 0 ? 'late' : 'left'}>
-              {' · '}{left > 0 ? T('card.daysLeft', { n: left }) : left === 0 ? T('card.lastDay') : T('card.late')}
+              {' · '}{left > 1 ? T('card.daysLeft', { n: left }) : left === 1 ? T('card.dayLeft') : left === 0 ? T('card.lastDay') : T('card.late')}
             </span>
           )}
         </p>
       ) : <p className="window-date late">{T('card.noWindow')}</p>}
+    </div>
+  );
+}
+
+/** Small bar chart of the odds for each sowing date. */
+function WindowChart({ w, lang }: { w: SowingWindow; lang: Lang }) {
+  const T: Tr = (key, vars) => t(lang, key, vars);
+  return (
+    <div className="window-chart">
       <div className="window-bars" role="img" aria-label={T('card.windowChart')}>
         {w.points.map((p) => (
           <span key={p.sowMonthDay} className={`bar${p.sowMonthDay === w.latest ? ' latest' : ''}`}
             title={`${formatMonthDay(p.sowMonthDay, lang)}: ${p.share == null ? '–' : `${p.odds.good}/${p.odds.total}`}`}
-            style={{ height: `${Math.max(2, Math.round((p.share ?? 0) * 100))}%` }} />
+            style={{ height: `${Math.max(4, Math.round((p.share ?? 0) * 100))}%` }} />
         ))}
       </div>
-      <p className="window-axis muted">
+      <p className="window-axis">
         <span>{formatMonthDay(w.points[0].sowMonthDay, lang)}</span>
         <span>{T('card.windowChart')}</span>
         <span>{formatMonthDay(w.points[w.points.length - 1].sowMonthDay, lang)}</span>
@@ -232,23 +312,24 @@ function WhatIfPanel({ value, onChange, lang }: { value: WhatIf; onChange: (w: W
   const T: Tr = (key, vars) => t(lang, key, vars);
   const rainPct = Math.round((value.rainFactor - 1) * 100);
   return (
-    <section className="whatif" data-testid="whatif">
-      <h3>{T('whatif.title')}</h3>
+    <details className="card whatif" data-testid="whatif">
+      <summary>{T('whatif.title')}</summary>
+      <p className="muted">{T('whatif.note')}</p>
       <div className="sliders">
         <label>
-          {T('whatif.rain')}: <strong>{signed(rainPct)}%</strong>
+          <span>{T('whatif.rain')}: <strong>{signed(rainPct)}%</strong></span>
           <input type="range" min={-30} max={10} step={5} value={rainPct} aria-label={T('whatif.rain')}
             onChange={(e) => onChange({ ...value, rainFactor: 1 + Number(e.target.value) / 100 })} />
         </label>
         <label>
-          {T('whatif.temp')}: <strong>{signed(value.dT)}°C</strong>
+          <span>{T('whatif.temp')}: <strong>{signed(value.dT)}°C</strong></span>
           <input type="range" min={0} max={3} step={0.5} value={value.dT} aria-label={T('whatif.temp')}
             onChange={(e) => onChange({ ...value, dT: Number(e.target.value) })} />
         </label>
-        <button onClick={() => onChange(REAL)} disabled={value.rainFactor === 1 && value.dT === 0}>{T('whatif.reset')}</button>
+        <button className="button secondary small" onClick={() => onChange(REAL)}
+          disabled={value.rainFactor === 1 && value.dT === 0}>{T('whatif.reset')}</button>
       </div>
-      <p className="muted">{T('whatif.note')}</p>
-    </section>
+    </details>
   );
 }
 
@@ -262,12 +343,14 @@ function Drawer(p: {
     cell: p.cell, season, crop, sowMonthDay: p.sow, soil: p.soil, position: p.position, whatIf: p.whatIf, withDaily: true,
   });
   return (
-    <aside className="drawer" data-testid="drawer">
-      <button className="close" onClick={p.onClose}>{T('drawer.close')} ✕</button>
-      <h3>
-        {lang === 'th' ? crop.nameTh : crop.nameEn} · {T('drawer.season', { season: formatSeason(season.year, lang) })} ·{' '}
-        {ICON[o.kind]} {T(`outcome.${o.kind}`)}
-      </h3>
+    <aside className="card drawer" data-testid="drawer">
+      <div className="drawer-head">
+        <h3>
+          {lang === 'th' ? crop.nameTh : crop.nameEn} · {T('drawer.season', { season: formatSeason(season.year, lang) })} ·{' '}
+          {ICON[o.kind]} {T(`outcome.${o.kind}`)}
+        </h3>
+        <button className="close" onClick={p.onClose}><IconClose /> {T('drawer.close')}</button>
+      </div>
       {o.kind !== 'nodata' && <p>{T('drawer.sown', { date: formatDate(dayIndexToDate(season, o.sowIndex), lang) })}</p>}
       {o.kind === 'failed' && (
         <p className="died">
@@ -294,10 +377,10 @@ function SoilWaterChart({ o, length, caption }: { o: Outcome; length: number; ca
     <figure>
       <svg viewBox={`0 0 ${W} ${H}`} role="img" aria-label={caption}>
         {rain.map((r, d) => r > 0 && (
-          <rect key={d} x={x(d) - 1.5} y={0} width={3} height={(r / maxRain) * H * 0.4} fill="var(--sky)" opacity={0.6} />
+          <rect key={d} x={x(d) - 1.5} y={0} width={3} height={(r / maxRain) * H * 0.4} rx={1.5} fill="var(--sky)" opacity={0.55} />
         ))}
-        <line x1={0} x2={W} y1={y(taw - raw)} y2={y(taw - raw)} stroke="var(--sun)" strokeDasharray="6 4" />
-        <polyline points={line} fill="none" stroke="var(--leaf)" strokeWidth={3} />
+        <line x1={0} x2={W} y1={y(taw - raw)} y2={y(taw - raw)} stroke="var(--sun)" strokeWidth={2} strokeDasharray="6 5" />
+        <polyline points={line} fill="none" stroke="var(--leaf)" strokeWidth={3} strokeLinejoin="round" />
         {death != null && <line x1={x(death)} x2={x(death)} y1={0} y2={H} stroke="var(--clay)" strokeWidth={2} />}
       </svg>
       <figcaption className="muted">{caption} · 0–{Math.round(taw)} mm</figcaption>

@@ -1,5 +1,6 @@
 // Loads per-cell NASA POWER history: prebuilt static files first, live NASA POWER API as a fallback.
 import type { CellData, Grid, GridCell, Num, SeasonData } from './engine';
+import type { CurrentSeason } from './engine/analog';
 
 const FIRST_SEASON = 2001;
 const POWER_PARAMS = { rain: 'PRECTOTCORR', tmax: 'T2M_MAX', tmin: 'T2M_MIN', wetness: 'GWETROOT' } as const;
@@ -45,15 +46,48 @@ export async function loadCell(cell: GridCell, onLive?: () => void): Promise<Cel
 }
 
 const ymd = (d: Date) => d.toISOString().slice(0, 10).replace(/-/g, '');
+const powerUrl = (cell: GridCell, start: string, end: string) =>
+  `https://power.larc.nasa.gov/api/temporal/daily/point?parameters=${Object.values(POWER_PARAMS).join(',')}` +
+  `&community=AG&latitude=${cell.lat}&longitude=${cell.lon}&start=${start}&end=${end}&format=JSON`;
+
+/**
+ * The dry season under way (1 Aug → the last day NASA POWER has, usually 2–4 days ago), fetched live.
+ * Seasons start on 1 Aug, so from January to July this is the season that began last August.
+ */
+export async function fetchCurrentSeason(cell: GridCell, today = new Date()): Promise<CurrentSeason> {
+  const year = today.getUTCMonth() >= 7 ? today.getUTCFullYear() : today.getUTCFullYear() - 1;
+  const r = await fetch(powerUrl(cell, `${year}0801`, ymd(today)));
+  if (!r.ok) throw new Error(`NASA POWER ${r.status}`);
+  return parseCurrentSeason((await r.json()).properties.parameter, year, today);
+}
+
+/** POWER's daily JSON → arrays from 1 Aug to the last day where every parameter has a value. */
+export function parseCurrentSeason(param: Record<string, Record<string, number>>, year: number, today: Date): CurrentSeason {
+  const s: CurrentSeason = { year, start: `${year}-08-01`, asOf: '', rain: [], tmax: [], tmin: [], wetness: [] };
+  let last = -1;
+  for (let d = new Date(Date.UTC(year, 7, 1)), i = 0; d <= today; d.setUTCDate(d.getUTCDate() + 1), i++) {
+    let complete = true;
+    for (const [name, code] of Object.entries(POWER_PARAMS) as [keyof typeof POWER_PARAMS, string][]) {
+      const v = param[code]?.[ymd(d)];
+      const clean: Num = v == null || v < POWER_FILL ? null : v;
+      s[name].push(clean);
+      if (clean == null) complete = false;
+    }
+    if (complete) {
+      last = i;
+      s.asOf = d.toISOString().slice(0, 10);
+    }
+  }
+  if (last < 0) throw new Error('NASA POWER has no data for this season yet');
+  for (const k of ['rain', 'tmax', 'tmin', 'wetness'] as const) s[k] = s[k].slice(0, last + 1);
+  return s;
+}
 
 /** Same shape as the prebuilt files, built in the browser from the NASA POWER API. */
 async function fetchLiveCell(cell: GridCell): Promise<CellData> {
   const now = new Date();
   const lastSeason = now.getUTCMonth() >= 7 ? now.getUTCFullYear() - 1 : now.getUTCFullYear() - 2;
-  const url =
-    `https://power.larc.nasa.gov/api/temporal/daily/point?parameters=${Object.values(POWER_PARAMS).join(',')}` +
-    `&community=AG&latitude=${cell.lat}&longitude=${cell.lon}&start=${FIRST_SEASON}0801&end=${lastSeason + 1}0731&format=JSON`;
-  const r = await fetch(url);
+  const r = await fetch(powerUrl(cell, `${FIRST_SEASON}0801`, `${lastSeason + 1}0731`));
   if (!r.ok) throw new Error(`NASA POWER ${r.status}`);
   const param: Record<string, Record<string, number>> = (await r.json()).properties.parameter;
 

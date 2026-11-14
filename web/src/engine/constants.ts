@@ -7,6 +7,11 @@ export const KILL_DAYS = 7; // consecutive severe days that kill the crop
 export const GOOD_RET = 0.75; // share of water demand met for a "good" season
 export const FAIL_RET = 0.5; // below this the season failed
 export const HEAT_DAYS_FAIL = 3; // hot days at flowering that ruin the crop
+export const WINDOW_TOLERANCE = 0.1; // odds drop allowed when finding the latest safe sowing date
+export const WINDOW_FIRST = '11-01'; // sowing window sweep: 1 Nov to 1 Feb in 7-day steps
+export const WINDOW_LAST = '02-01';
+export const WINDOW_STEP_DAYS = 7;
+export const ANALOG_K = 3; // nearest past seasons used for "this season looks like…"
 
 // Most water a shallow water table can lift into the root zone (FAO-56 "CR"), mm/day.
 // Lowland paddies keep a shallow water table after the wet season; that is what makes

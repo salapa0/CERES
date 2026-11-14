@@ -1,7 +1,7 @@
 // The Field Time Machine replay engine (blueprint §9). Pure functions, no network.
 import cropsJson from '../data/crops.json';
 import {
-  CAPILLARY_RISE_MAX_MM, FAIL_RET, GOOD_RET, HEAT_DAYS_FAIL, KILL_DAYS, KILL_KS, RAIN_EFFECTIVE_FRACTION, SOIL_TEXTURES,
+  CAPILLARY_RISE_MAX_MM, IRRIGATION_MIN_GAP_DAYS, IRRIGATION_MM, SAFE_SHARE, WATERINGS_SEARCH_MAX, FAIL_RET, GOOD_RET, HEAT_DAYS_FAIL, KILL_DAYS, KILL_KS, RAIN_EFFECTIVE_FRACTION, SOIL_TEXTURES,
   WINDOW_FIRST, WINDOW_LAST, WINDOW_STEP_DAYS, WINDOW_TOLERANCE,
 } from './constants';
 import { extraterrestrialRadiation, hargreavesEt0 } from './et0';
@@ -77,6 +77,8 @@ export function replay(a: ReplayArgs): Outcome {
   let heatDays = 0;
   let deathDay: number | null = null;
   let reason: Outcome['reason'] = null;
+  let waterLeft = a.waterings ?? 0;
+  let lastWatered = -Infinity;
   const trace = { dr: [] as number[], taw, raw, rain: [] as number[] };
 
   for (let d = 0; d < length; d++) {
@@ -90,6 +92,12 @@ export function replay(a: ReplayArgs): Outcome {
     const tmin = tmin0 + whatIf.dT;
 
     const et0 = hargreavesEt0(tmax, tmin, extraterrestrialRadiation(cell.lat, dayOfYear(dayIndexToDate(season, i))));
+    // The farmer waters when the crop starts to stress, while waterings remain.
+    if (waterLeft > 0 && dr > raw && d - lastWatered >= IRRIGATION_MIN_GAP_DAYS) {
+      dr = Math.max(0, dr - IRRIGATION_MM);
+      waterLeft--;
+      lastWatered = d;
+    }
     const ks = dr <= raw ? 1 : (taw - dr) / ((1 - crop.p) * taw);
     const etc = kcOnDay(crop, d) * et0;
     const eta = ks * etc;
@@ -128,16 +136,18 @@ export function replay(a: ReplayArgs): Outcome {
     deathDay,
     reason: failed ? (reason ?? 'drought') : null,
     sowIndex: sow,
+    watered: (a.waterings ?? 0) - waterLeft,
     daily: a.withDaily ? trace : undefined,
   };
 }
 
 export function runTimeline(
   cell: CellData, crops: Crop[], sowMonthDay: string, soil: SoilTexture, position: FieldPosition, whatIf?: WhatIf,
+  waterings = 0,
 ): Timeline {
   const timeline: Timeline = {};
   for (const crop of crops) {
-    timeline[crop.id] = cell.seasons.map((season) => replay({ cell, season, crop, sowMonthDay, soil, position, whatIf }));
+    timeline[crop.id] = cell.seasons.map((season) => replay({ cell, season, crop, sowMonthDay, soil, position, whatIf, waterings }));
   }
   return timeline;
 }
@@ -183,10 +193,10 @@ export function latestSafe(points: { sowMonthDay: string; share: number | null }
 
 /** Odds for one crop at every sweep date, and the latest safe sowing date (blueprint §9.9). */
 export function sowingWindow(
-  cell: CellData, crop: Crop, soil: SoilTexture, position: FieldPosition, whatIf?: WhatIf,
+  cell: CellData, crop: Crop, soil: SoilTexture, position: FieldPosition, whatIf?: WhatIf, waterings = 0,
 ): SowingWindow {
   const points = windowDates().map((sowMonthDay) => {
-    const o = odds(cell.seasons.map((season) => replay({ cell, season, crop, sowMonthDay, soil, position, whatIf })));
+    const o = odds(cell.seasons.map((season) => replay({ cell, season, crop, sowMonthDay, soil, position, whatIf, waterings })));
     return { sowMonthDay, odds: o, share: o.total > 0 ? o.good / o.total : null };
   });
   const shares = points.map((p) => p.share).filter((s): s is number => s != null);
@@ -204,6 +214,21 @@ export function daysLeft(latest: string, today: Date): number | null {
   const [lm, ld] = latest.split('-').map(Number);
   const target = Date.UTC(lm >= 8 ? seasonYear : seasonYear + 1, lm - 1, ld);
   return Math.round((target - Date.UTC(today.getFullYear(), m, today.getDate())) / DAY_MS);
+}
+
+/**
+ * Fewest waterings (0..WATERINGS_SEARCH_MAX) with which the crop survived at least SAFE_SHARE of past
+ * seasons; null when even the maximum is not enough, or there is no data.
+ */
+export function waterNeeded(
+  cell: CellData, crop: Crop, sowMonthDay: string, soil: SoilTexture, position: FieldPosition, whatIf?: WhatIf,
+): number | null {
+  for (let waterings = 0; waterings <= WATERINGS_SEARCH_MAX; waterings++) {
+    const o = odds(cell.seasons.map((season) => replay({ cell, season, crop, sowMonthDay, soil, position, whatIf, waterings })));
+    if (o.total === 0) return null;
+    if (o.good / o.total >= SAFE_SHARE) return waterings;
+  }
+  return null;
 }
 
 /** The three cards: A today's rice → bare, B best legume, C best other crop. */

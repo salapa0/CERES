@@ -52,6 +52,7 @@ export interface Outcome {
   deathDay: number | null; // index into the season arrays
   reason: 'drought' | 'heat' | null;
   sowIndex: number;
+  watered?: number; // waterings actually used
   daily?: DailyTrace;
 }
 
@@ -63,6 +64,7 @@ export interface ReplayArgs {
   soil: SoilTexture;
   position?: FieldPosition;
   whatIf?: WhatIf;
+  waterings?: number; // extra waterings the farmer can give this season
   withDaily?: boolean;
 }
 

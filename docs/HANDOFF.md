@@ -1,13 +1,13 @@
 # DEMETER Field Time Machine: handoff and progress report
 
-**Last updated:** Sat 14 Nov 2026, night. **Branch:** `build/p1-features` (pushed, PR open to `main`, not deployed).
+**Last updated:** Sun 15 Nov 2026, morning. **Live:** https://salapa0.github.io/demeter-fieldshift/ (deploys from `main` on every push). **Open work:** branch `build/submission-polish`.
 **Deadline:** submit by Sun 15 Nov 2026, 20:00 Thailand time (hard close 23:59).
 
 Read this first, then the blueprint (`docs/superpowers/specs/2026-11-14-field-time-machine-design.md`) for the full design. Where the two disagree about what exists today, this file is right.
 
 ## 1. Status in one paragraph
 
-The MVP core (`build/mvp-core`) is merged to `main`. On top of it, `build/p1-features` adds the sowing window (F12), what-if sliders (F13), this-season look-alike years (F10, live from NASA POWER), a satellite basemap toggle (F16), a my-location button (F1), an About page (F17), and crop and soil values checked against the FAO-56 tables. English is now the default language, with a Thai toggle. **The site is still not live:** the first deploy on `main` failed because GitHub Pages is not enabled for the repository, and only a repo admin can enable it (see §7, step 1). Styling is still functional only.
+The MVP core (`build/mvp-core`) is merged to `main`. On top of it, `build/p1-features` adds the sowing window (F12), what-if sliders (F13), this-season look-alike years (F10, live from NASA POWER), a satellite basemap toggle (F16), a my-location button (F1), an About page (F17), and crop and soil values checked against the FAO-56 tables. English is now the default language, with a Thai toggle. The site is live on GitHub Pages and has the team's new design (PR 3). `build/submission-polish` adds a **"times you can water" input** and, on each crop card and in the summary, **how many waterings a crop needs to survive 4 years in 5**; see §5.15. Submission text and a demo script are in `docs/SUBMISSION.md`.
 
 ## 2. How to run it
 
@@ -15,7 +15,7 @@ The MVP core (`build/mvp-core`) is merged to `main`. On top of it, `build/p1-fea
 cd web
 npm install
 npm run dev        # open http://localhost:5173/demeter-fieldshift/
-npm test           # 39 tests
+npm test           # 44 tests
 npm run build      # typecheck + production build into web/dist
 ```
 
@@ -36,6 +36,7 @@ python pipeline/build_history.py --limit 1  # just the Khon Kaen pilot cell
 | Sowing window (F12): sweep 1 Nov → 1 Feb every 7 days, latest date within 0.10 of the best odds, days left | `engine/index.ts` (`sowingWindow`, `latestSafe`, `daysLeft`), cards B and C | 4 tests incl. "later sowing never raises odds in a steadily drying season"; checked in the browser |
 | What-if sliders (F13): rain −30 % … +10 %, temperature +0 … +3 °C | `Results.tsx` (`WhatIfPanel`) | Test: 0.7 × rain or +3 °C never raises any crop's odds on the real Khon Kaen cell; component test; checked in the browser |
 | This season looks like… (F10): 3 nearest past seasons on Aug–Oct rain, rain since 1 Nov, root-zone wetness; "years like this" odds on cards; analog years marked on the timeline; badge drops to Low when analogs split | `engine/analog.ts`, `data.ts` (`fetchCurrentSeason`) | 5 analog tests + parse test + 2 component tests; live in the browser: cell 16.00, 103.13 → data to 11 Nov 2026, looks like 2025, 2016, 2008 |
+| Waterings: 0–8 waterings of 30 mm, applied when the soil passes the stress line, at most weekly; "waterings needed" per crop | `engine/index.ts` (`replay` `waterings`, `waterNeeded`), `Results.tsx` | 3 engine tests + 1 component test; in the browser near Khon Kaen: sunn hemp 7 → 20 of 25 seasons with 2 waterings |
 | Tap → cell, with nearest-cell snap for islands and border tips | `web/src/data.ts` | 3 tests on the real grid |
 | Satellite basemap toggle (F16): EOX Sentinel-2 cloudless 2016, CC BY 4.0, under the labels | `MapView.tsx` | Licence read from EOX's WMTS capabilities; tile over Khon Kaen fetched and viewed. **The 2016 layer was not seen rendering in the browser** (an earlier try with the 2017 layer showed blank land, which is why it was swapped) |
 | My-location button (F1) | `App.tsx` | **Not tested**: the preview browser has no GPS |
@@ -47,12 +48,10 @@ python pipeline/build_history.py --limit 1  # just the Khon Kaen pilot cell
 
 | Item | Blueprint ref | Notes |
 |---|---|---|
-| **Enable GitHub Pages and deploy** | M1/M5 | Needs a repo **admin** (the `ZENLIK02` account has write access only). Settings → Pages → Source: **GitHub Actions**, then re-run the failed "Test and deploy" run on `main`, or merge this PR. |
 | Self-check against GLDAS satellite soil moisture; "High" confidence badge | F11 | Needs Earthdata login as repo secrets `EARTHDATA_USERNAME` / `EARTHDATA_PASSWORD` (a human adds them) |
 | IMERG rain, SMAP soil moisture | F14, F15 | Same Earthdata secrets |
 | Daily cron writing `season/current.json` | F10 / M6 | Replaced by a live browser fetch, see §5.11 |
 | AI chat, MODIS check, SRTM | F18–F20 | P2 |
-| Styling and visual design | §11 | Deliberately minimal; the team owns this. Known nit: odds are green even at "0 of 25" |
 | Citations for the soil-effect text | §10.2 | About page links the Land Development Department home page for green manure; the team should add a specific document |
 | Demo video, Space Apps project page | Submit | Human tasks |
 
@@ -73,6 +72,8 @@ Decisions made during the build. Change them freely, but know they were delibera
 11. **Look-alike years come from a live fetch, not a cron (new).** The browser asks NASA POWER for 1 Aug → today for the tapped cell and keeps days up to the last one with every value (POWER runs about 3 days behind). No `season/current.json` and no daily workflow. If the fetch fails, the page says so and the cards show no "years like this" line.
 12. **Sowing window ignores dates where nothing survived (new).** With best odds below the 0.10 tolerance (for example 1 of 25), the blueprint rule would have accepted every date. A date now needs at least one good season to count.
 13. **English is the default language (new),** at the team's request; Thai is one tap away.
+15. **Waterings (new, Sun).** With no farmer to ask and no working satellite check, the pilot area showed a wall of failures for three of four crops: leftover moisture alone cannot carry them. The challenge names water availability as a farmer constraint, so the farmer can now say how many times they can water. One watering = `IRRIGATION_MM` (30 mm), given when depletion passes the stress line, at most every `IRRIGATION_MIN_GAP_DAYS` (7). "Needed" = the fewest waterings (up to 8) with at least `SAFE_SHARE` (0.8) good seasons. All four numbers are starting values.
+16. **Never re-run an old deploy run.** Re-running a past "Test and deploy" run redeploys that run's old build over the live site (this happened once on 14 Nov). To redeploy, re-run the **latest** run on `main` or push a commit.
 14. **Satellite layer is EOX Sentinel-2 cloudless 2016 (new).** It is the global CC BY 4.0 year. The 2017 layer is also CC BY but blank over Thailand; 2018 onward is CC BY-NC-SA.
 
 ## 6. Known limits and risks (be honest about these in the pitch)
@@ -80,14 +81,15 @@ Decisions made during the build. Change them freely, but know they were delibera
 - **The model is not calibrated.** All thresholds in `web/src/engine/constants.ts` and the groundwater number are starting values. Results show sensible patterns (the rainy south is mostly safe, Isan favours early sowing and short crops), but the exact odds should not be quoted as facts. Mung bean in particular fails almost every season in Isan in this model.
 - **Crop values:** checked against FAO-56 (§5.10), but Thai mung bean stage lengths (70 days), all heat limits and every sunn hemp value are still assumptions, and the cards say so.
 - **Data is a 55 km average** from NASA POWER (MERRA-2 based). No direct satellite soil moisture or rain yet.
-- **The premise is unconfirmed:** nobody has yet asked an Isan farmer whether water risk is what stops them planting after rice.
+- **The premise is unconfirmed and will stay so for the submission:** nobody has asked an Isan farmer whether water risk is what stops them planting after rice. Say this plainly in the pitch.
+- **No independent check of the model.** The MODIS (ORNL) service was down on both 14 and 15 Nov, and the GLDAS/SMAP checks need an Earthdata login nobody has added.
 - **Repo size:** the data adds about 33 MB. The JS bundle is about 1 MB (MapLibre); Vite warns about it.
 
 ## 7. Suggested next steps, in order
 
-1. **Repo admin:** enable Pages (Settings → Pages → Source: GitHub Actions). Then merge the `build/p1-features` PR (CI runs the tests on the PR) and check the live URL on a phone: `https://salapa0.github.io/demeter-fieldshift/`.
+1. Merge `build/submission-polish`, then check the live URL on a real phone.
 2. Check the satellite toggle and the my-location button on a real phone.
-3. Styling pass (team).
+3. Fill in the Space Apps project page from `docs/SUBMISSION.md` and record the video with its script.
 4. Earthdata features (F11, F14, F15) if someone adds the secrets and time allows.
 5. 2-minute video, Space Apps project page; submit by 20:00 Sunday.
 
@@ -107,5 +109,5 @@ web/src/Results.tsx              cards, sowing window, timeline, drawer, chart, 
 web/src/App.tsx, MapView.tsx     page shell, MapLibre map, satellite toggle, my location
 web/src/About.tsx                About page
 web/src/i18n.ts                  all English/Thai text and date formats
-.github/workflows/deploy.yml     test + build + deploy to Pages (ran once on main; deploy step failed, Pages off)
+.github/workflows/deploy.yml     test + build + deploy to Pages on every push to main
 ```

@@ -1,5 +1,5 @@
 import { extraterrestrialRadiation, hargreavesEt0 } from './et0';
-import { buildStrategies, dayIndexToDate, kcOnDay, loadCrops, odds, replay, runTimeline, seasonLength, sowIndex } from './index';
+import { buildStrategies, dayIndexToDate, kcOnDay, loadCrops, odds, replay, runTimeline, seasonLength, sowIndex, waterNeeded } from './index';
 import type { CellData, Crop, Outcome, SeasonData } from './types';
 
 const crop: Crop = {
@@ -108,5 +108,26 @@ describe('odds and strategies', () => {
     expect(st[0].cropId).toBeNull();
     expect(st[1].cropId).toBe('mungbean'); // tie goes to mung bean
     expect(st[1].altCropId).toBe('peanut');
+  });
+});
+
+describe('waterings', () => {
+  test('watering a dry season raises the water the crop gets and keeps it alive longer', () => {
+    const s = season(2015, 0, 0.3);
+    const dry = run(s);
+    const watered = run(s, crop, { waterings: 8 });
+    expect(dry.kind).toBe('failed');
+    expect(watered.ret!).toBeGreaterThan(dry.ret!);
+    expect(watered.deathDay === null || watered.deathDay > dry.deathDay!).toBe(true);
+    expect(watered.watered).toBe(8);
+  });
+  test('no waterings are used when the soil never dries past the stress line', () => {
+    const wet = season(2015, 5, 0.8);
+    expect(run(wet, crop, { waterings: 4 }).ret).toBeCloseTo(run(wet).ret!, 10);
+  });
+  test('waterNeeded is 0 for a wet field and more than 0 for a dry one', () => {
+    expect(waterNeeded(cell([season(2015, 5, 0.8), season(2016, 5, 0.8)]), crop, '12-01', 'loamySand', 'upland')).toBe(0);
+    const need = waterNeeded(cell([season(2015, 0, 0.3), season(2016, 0, 0.3)]), crop, '12-01', 'loamySand', 'upland');
+    expect(need === null || need > 0).toBe(true);
   });
 });

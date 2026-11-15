@@ -116,3 +116,10 @@ it('falls back to the older copy command where the clipboard is blocked', async 
   expect(await screen.findByText(/Link copied/)).toBeInTheDocument();
   expect(exec).toHaveBeenCalledWith('copy');
 });
+
+it('shows an estimated income per rai on cash-crop cards and no cash for sunn hemp', () => {
+  render(<Results cell={cell([season(2015, 5, 0.8), season(2016, 5, 0.8)])} lang="en" />);
+  const lines = screen.getAllByTestId('income').map((e) => e.textContent ?? '');
+  expect(lines).toHaveLength(2);
+  expect(lines.some((l) => /Estimated income ≈ ฿[\d,]+ per rai on average/.test(l) || /No cash income/.test(l))).toBe(true);
+});

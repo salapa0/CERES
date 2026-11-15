@@ -10,6 +10,13 @@
       "Stage lengths: assumption. FAO-56 Table 11 gives 20/30/30/20 days for a March Mediterranean planting (its printed total says 110, the stages sum to 100); Thai varieties ripen in about 70 days",
       "Heat limit: assumption"
     ],
+    "market": {
+      "yieldKgPerRai": 150, "priceBahtPerKg": 22.0, "asOf": "2026-02",
+      "sources": [
+        "Price: OAE weekly farm-gate price, mung bean (ถั่วเขียวผิวมันเมล็ดใหญ่คละ), late Feb 2026: 22.00 baht/kg (range 21.06 in Dec 2025 to 31.48 in Apr 2026)",
+        "Yield: assumption, 150 kg/rai, between an after-rice field report in Yasothon 2024/25 (about 140 kg/rai) and the Rice Department's 190–220 kg/rai for variety KUML"
+      ]
+    },
     "assumption": true
   },
   {
@@ -23,6 +30,12 @@
       "FAO-56 Table 22, 'Groundnut (Peanut)': Zr 0.5–1.0 m (low end, plough pan), p 0.50",
       "Heat limit: assumption"
     ],
+    "market": {
+      "yieldKgPerRai": 630, "priceBahtPerKg": 26.41, "asOf": "2023-05",
+      "sources": [
+        "OAE study of dry-season peanut (ถั่วลิสงรุ่น 2), 2022/23, 195 farmers in 8 provinces incl. Khon Kaen, Roi Et, Kalasin, Sisaket, Sakon Nakhon: 630.37 kg fresh pods/rai at 26.41 baht/kg (reported by Khaosod, 27 May 2025)"
+      ]
+    },
     "assumption": true
   },
   {
@@ -36,6 +49,13 @@
       "FAO-56 Table 22, 'Maize, Field (grain)': Zr 1.0–1.7 m (low end, plough pan), p 0.55",
       "Heat limit: assumption"
     ],
+    "market": {
+      "yieldKgPerRai": 748, "priceBahtPerKg": 8.19, "asOf": "2025-08",
+      "sources": [
+        "Price: OAE weekly farm-gate price, field corn at up to 14.5% moisture, 4–10 Aug 2025: 8.19 baht/kg",
+        "Yield: national average 748 kg/rai in 2024 (TDRI, 2026), all seasons; rain-fed after-rice fields may yield less"
+      ]
+    },
     "assumption": true
   },
   {

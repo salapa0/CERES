@@ -39,6 +39,26 @@
     "assumption": true
   },
   {
+    "id": "soybean", "nameTh": "ถั่วเหลือง", "nameEn": "Soybean", "group": "legume",
+    "stages": { "ini": 15, "dev": 15, "mid": 40, "late": 15 },
+    "kc": { "ini": 0.4, "mid": 1.15, "end": 0.5 },
+    "rootDepthM": 0.6, "p": 0.5, "heatC": 40, "soilEffect": "nitrogen",
+    "sources": [
+      "FAO-56 Table 11, 'Soybeans', December, Tropics: 15/15/40/15 days",
+      "FAO-56 Table 12, 'Soybeans': Kc mid 1.15, Kc end 0.50. Kc ini 0.4 = legume group value",
+      "FAO-56 Table 22, 'Soybeans': Zr 0.6–1.3 m (low end, plough pan), p 0.50",
+      "Heat limit: assumption"
+    ],
+    "market": {
+      "yieldKgPerRai": 264, "priceBahtPerKg": 18.97, "asOf": "2025-11",
+      "sources": [
+        "Price: OAE (via Region 2 office), mixed-grade soybean average 18.97 baht/kg as of 30 Nov 2025 (Bangkok Biznews, 'สศก. ชี้ พื้นที่ปลูกถั่วเหลืองลด 6%')",
+        "Yield: same OAE report, average 264 kg/rai for 2025/26 in six northern provinces; Isan yields may differ"
+      ]
+    },
+    "assumption": true
+  },
+  {
     "id": "maize", "nameTh": "ข้าวโพดเลี้ยงสัตว์", "nameEn": "Field corn", "group": "cash",
     "stages": { "ini": 20, "dev": 35, "mid": 40, "late": 30 },
     "kc": { "ini": 0.3, "mid": 1.2, "end": 0.6 },
@@ -54,6 +74,83 @@
       "sources": [
         "Price: OAE weekly farm-gate price, field corn at up to 14.5% moisture, 4–10 Aug 2025: 8.19 baht/kg",
         "Yield: national average 748 kg/rai in 2024 (TDRI, 2026), all seasons; rain-fed after-rice fields may yield less"
+      ]
+    },
+    "assumption": true
+  },
+  {
+    "id": "sweetcorn", "nameTh": "ข้าวโพดหวาน", "nameEn": "Sweet corn", "group": "cash",
+    "stages": { "ini": 20, "dev": 20, "mid": 30, "late": 10 },
+    "kc": { "ini": 0.3, "mid": 1.15, "end": 1.05 },
+    "rootDepthM": 0.8, "p": 0.5, "heatC": 38, "soilEffect": "uses",
+    "sources": [
+      "FAO-56 Table 11, 'Maize (sweet)', March, Philippines: 20/20/30/10 days",
+      "FAO-56 Table 12, 'Maize, Sweet': Kc mid 1.15, Kc end 1.05 (harvested fresh). Kc ini 0.3 = cereal group value",
+      "FAO-56 Table 22, 'Maize, Sweet': Zr 0.8–1.2 m (low end, plough pan), p 0.50",
+      "Heat limit: assumption, as field corn",
+      "No official farm-gate price for fresh sweet corn found (searched 2026-11-15), so no income is estimated"
+    ],
+    "assumption": true
+  },
+  {
+    "id": "sesame", "nameTh": "งา", "nameEn": "Sesame", "group": "cash",
+    "stages": { "ini": 20, "dev": 30, "mid": 40, "late": 20 },
+    "kc": { "ini": 0.35, "mid": 1.1, "end": 0.25 },
+    "rootDepthM": 1.0, "p": 0.6, "heatC": 40, "soilEffect": "uses",
+    "sources": [
+      "FAO-56 Table 11, 'Sesame', June, China: 20/30/40/20 days (printed total 100; the stages sum to 110)",
+      "FAO-56 Table 12, 'Sesame': Kc mid 1.10, Kc end 0.25. Kc ini 0.35 = oil-crop group value",
+      "FAO-56 Table 22, 'Sesame': Zr 1.0–1.5 m (low end, plough pan), p 0.60",
+      "Heat limit: assumption",
+      "No official farm-gate price for sesame found (only wholesale and retail prices; searched 2026-11-15), so no income is estimated"
+    ],
+    "assumption": true
+  },
+  {
+    "id": "watermelon", "nameTh": "แตงโม", "nameEn": "Watermelon", "group": "veg",
+    "stages": { "ini": 10, "dev": 20, "mid": 20, "late": 30 },
+    "kc": { "ini": 0.4, "mid": 1.0, "end": 0.75 },
+    "rootDepthM": 0.8, "p": 0.4, "heatC": 40, "soilEffect": "uses",
+    "sources": [
+      "FAO-56 Table 11, 'Water melons', Near East (desert): 10/20/20/30 days, the hot-climate row",
+      "FAO-56 Table 12, 'Watermelon': Kc ini 0.4, Kc mid 1.00, Kc end 0.75",
+      "FAO-56 Table 22, 'Watermelon': Zr 0.8–1.5 m (low end, plough pan), p 0.40",
+      "Heat limit: assumption",
+      "No recent official farm-gate price found (only a 2019 OAE figure and news reports of 1–12 baht/kg; searched 2026-11-15), so no income is estimated"
+    ],
+    "assumption": true
+  },
+  {
+    "id": "chili", "nameTh": "พริก", "nameEn": "Chili", "group": "veg",
+    "stages": { "ini": 25, "dev": 35, "mid": 40, "late": 20 },
+    "kc": { "ini": 0.6, "mid": 1.05, "end": 0.9 },
+    "rootDepthM": 0.5, "p": 0.3, "heatC": 40, "soilEffect": "uses",
+    "sources": [
+      "FAO-56 has no chili row; values borrowed from 'Sweet peppers (bell)'",
+      "FAO-56 Table 11, 'Sweet peppers (bell)', April/June, Europe and Mediterranean: 25/35/40/20 days",
+      "FAO-56 Table 12, 'Sweet Peppers (bell)': Kc mid 1.05, Kc end 0.90. Kc ini 0.6 = Solanum group value",
+      "FAO-56 Table 22, 'Sweet Peppers (bell)': Zr 0.5–1.0 m (low end, plough pan), p 0.30",
+      "Heat limit: assumption",
+      "No official farm-gate price for fresh chili in Isan found (searched 2026-11-15), so no income is estimated"
+    ],
+    "assumption": true
+  },
+  {
+    "id": "shallot", "nameTh": "หอมแดง", "nameEn": "Shallot", "group": "veg",
+    "stages": { "ini": 25, "dev": 30, "mid": 10, "late": 5 },
+    "kc": { "ini": 0.7, "mid": 1.05, "end": 0.75 },
+    "rootDepthM": 0.3, "p": 0.3, "heatC": 40, "soilEffect": "uses",
+    "sources": [
+      "FAO-56 has no shallot row. Stage lengths: 'Onion (green)', April/May, Mediterranean: 25/30/10/5 days (70 days, close to Si Sa Ket shallot)",
+      "FAO-56 Table 12, 'Onions, dry': Kc mid 1.05, Kc end 0.75. Kc ini 0.7 = small-vegetable group value",
+      "FAO-56 Table 22, 'Onions, dry': Zr 0.3–0.6 m (low end), p 0.30",
+      "Heat limit: assumption"
+    ],
+    "market": {
+      "yieldKgPerRai": 4212, "priceBahtPerKg": 12.5, "asOf": "2025-12",
+      "sources": [
+        "Price: Si Sa Ket Provincial Commerce Office field visit, 16 Dec 2025: fresh shallot bought at the farm for 10–15 baht/kg by quality; 12.5 is the midpoint",
+        "Yield: Si Sa Ket Provincial Agriculture and Cooperatives Office meeting, 11 Dec 2025: average 4,212 kg/rai on the 9,480 rai harvested so far in Yang Chum Noi and Kanthararom"
       ]
     },
     "assumption": true

@@ -141,6 +141,15 @@ it('every crop choice shows its income or plainly says it has none, and the deta
   expect(screen.getByTestId('income')).toHaveTextContent(/No cash income/);
 });
 
+test('a crop with no sourced price says so, distinct from a crop grown only for the soil', () => {
+  render(<Results cell={cell([season(2015, 5, 0.8), season(2016, 5, 0.8)])} lang="th" />);
+  expect(screen.getByRole('radio', { name: /งา.*ยังไม่มีราคาอ้างอิง/ })).toBeInTheDocument();
+  expect(screen.getByRole('radio', { name: /ปอเทือง.*ไม่มีรายได้/ })).toBeInTheDocument();
+  fireEvent.click(screen.getByRole('radio', { name: /แตงโม/ }));
+  expect(screen.getByTestId('income')).toHaveTextContent('ยังไม่มีราคาอ้างอิง');
+  expect(screen.getByText('ผัก ต้องรดน้ำ')).toBeInTheDocument();
+});
+
 test('the recommended crop is picked first; another pick shows its detail and stays when settings change', () => {
   render(<Results cell={cell([season(2015, 5, 0.8), season(2016, 5, 0.8)])} lang="en" />);
   expect(screen.getByRole('radio', { checked: true }).closest('label')).toHaveTextContent('Recommended');

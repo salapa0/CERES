@@ -93,10 +93,18 @@ describe('odds and strategies', () => {
     expect(odds([o('good'), o('poor'), o('failed'), o('nodata')])).toEqual({ good: 1, poor: 1, failed: 1, nodata: 1, total: 3 });
     expect(odds([o('nodata')]).total).toBe(0);
   });
-  test('four crops load, each with a source', () => {
+  test('ten crops load, each with a group and a source; only sourced prices are given', () => {
     const crops = loadCrops();
-    expect(crops.map((c) => c.id).sort()).toEqual(['maize', 'mungbean', 'peanut', 'sunnhemp']);
-    expect(crops.every((c) => c.sources.length > 0)).toBe(true);
+    expect(crops.map((c) => c.id).sort()).toEqual(
+      ['chili', 'maize', 'mungbean', 'peanut', 'sesame', 'shallot', 'soybean', 'sunnhemp', 'sweetcorn', 'watermelon']);
+    expect(crops.every((c) => c.sources.length > 0 && ['legume', 'cash', 'veg', 'manure'].includes(c.group))).toBe(true);
+    const byId = Object.fromEntries(crops.map((c) => [c.id, c]));
+    expect(byId.soybean.market).toMatchObject({ yieldKgPerRai: 264, priceBahtPerKg: 18.97, asOf: '2025-11' });
+    expect(byId.shallot.market).toMatchObject({ yieldKgPerRai: 4212, priceBahtPerKg: 12.5, asOf: '2025-12' });
+    for (const id of ['sesame', 'watermelon', 'sweetcorn', 'chili', 'sunnhemp']) expect(byId[id].market).toBeUndefined();
+    // FAO-56 values as read from Tables 11, 12 and 22.
+    expect(byId.soybean).toMatchObject({ stages: { ini: 15, dev: 15, mid: 40, late: 15 }, kc: { ini: 0.4, mid: 1.15, end: 0.5 }, rootDepthM: 0.6, p: 0.5 });
+    expect(byId.shallot).toMatchObject({ kc: { ini: 0.7, mid: 1.05, end: 0.75 }, rootDepthM: 0.3, p: 0.3 });
   });
   test('timeline has one outcome per season per crop', () => {
     const c = cell([season(2015, 5, 0.8), season(2016, 5, 0.8)]);

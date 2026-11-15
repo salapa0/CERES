@@ -84,9 +84,6 @@ export function Results({ cell, lang, current, today = new Date(), initial = {},
       }} />
       <Summary strategies={strategies} crops={crops} windows={windows} lang={lang} today={today} whatIfDesc={whatIfDesc}
         needs={needs} waterings={waterings} />
-      <AnalogLine current={current} analogs={analogs} lang={lang} />
-      <SatelliteRain current={current} imerg={imerg} lang={lang} />
-      <SoilNow smap={smap} lang={lang} />
 
       <div className="cards" aria-label={T('results.options')}>
         {strategies.map((s) => (
@@ -98,6 +95,8 @@ export function Results({ cell, lang, current, today = new Date(), initial = {},
             hitRate={hitRate} whatIfDesc={whatIfDesc} />
         ))}
       </div>
+
+      <CheckCard current={current} analogs={analogs} imerg={imerg} smap={smap} check={check} lang={lang} />
 
       <section className="card timeline-card">
         <div className="card-heading">
@@ -146,7 +145,6 @@ export function Results({ cell, lang, current, today = new Date(), initial = {},
             </tbody>
           </table>
         </div>
-        <SelfCheckLine check={check} lang={lang} />
       </section>
 
       {open && (
@@ -250,17 +248,20 @@ function Summary({ strategies, crops, windows, lang, today, whatIfDesc, needs, w
     .map((c) => ({ c, n: needs[c.id] }))
     .filter((x): x is { c: Crop; n: number } => x.n != null && x.n > 0)
     .sort((a, b) => a.n - b.n)[0];
+  // Risky but water would fix it: say so, rather than "leave it bare" followed by a fix (the old contradiction).
+  const waterHelps = waterings === 0 && !!thirsty;
+  const main = level !== 'low' ? T('summary.best', vars) : waterHelps ? T('summary.riskyDry', vars) : T('summary.risky', vars);
   return (
     <div className={`card summary tone-${level}`} data-testid="summary">
       <p className="summary-kicker">{T('summary.kicker')}</p>
-      <p className="summary-main">{level === 'low' ? T('summary.risky', vars) : T('summary.best', vars)}</p>
+      <p className="summary-main">{main}</p>
       {level !== 'low' && w?.latest && (
         <p className="summary-plant">
           {T('card.window', { date: formatMonthDay(w.latest, lang) })}
           {left != null && <> · {left > 1 ? T('card.daysLeft', { n: left }) : left === 1 ? T('card.dayLeft') : left === 0 ? T('card.lastDay') : T('card.late')}</>}
         </p>
       )}
-      {level !== 'good' && waterings === 0 && thirsty && (
+      {level !== 'good' && waterHelps && thirsty && (
         <p className="summary-plant" data-testid="summary-water">
           {T('summary.water', { crop: lang === 'th' ? thirsty.c.nameTh : thirsty.c.nameEn, n: thirsty.n, mm: thirsty.n * IRRIGATION_MM })}
         </p>
@@ -281,7 +282,6 @@ function Card({ s, crops, lang, today, window, analog, whatIfDesc, need, waterin
   const name = (c: Crop) => (lang === 'th' ? c.nameTh : c.nameEn);
   const { level, why } = badge({ seasons: s.odds?.total ?? 0, analog, hitRate });
   const whyText = why.map((w) => T(`badge.why.${w}`));
-  const pct = (n: number) => (s.odds && s.odds.total ? `${(n / s.odds.total) * 100}%` : '0%');
   return (
     <article className={`card option option-${s.id} tone-${tone(s.odds)}`} data-testid="card">
       <h3 className="option-top"><span className="option-tag">{s.id}</span>{T(`card.${s.id}`)}</h3>
@@ -291,12 +291,7 @@ function Card({ s, crops, lang, today, window, analog, whatIfDesc, need, waterin
       {s.odds && s.odds.total > 0 && (
         <>
           <p className="odds">{T('card.odds', { good: s.odds.good, total: s.odds.total })}</p>
-          <div className="meter" title={T('card.detail', { poor: s.odds.poor, failed: s.odds.failed })}>
-            <span className="m-good" style={{ width: pct(s.odds.good) }} />
-            <span className="m-poor" style={{ width: pct(s.odds.poor) }} />
-            <span className="m-failed" style={{ width: pct(s.odds.failed) }} />
-            <span className="sr-only">{T('card.detail', { poor: s.odds.poor, failed: s.odds.failed })}</span>
-          </div>
+          <SeasonMarks odds={s.odds} lang={lang} />
           {analog && analog.total > 0 && (
             <p className="analog-odds" data-testid="analog-odds">{T('card.analog', { good: analog.good, total: analog.total })}</p>
           )}
@@ -340,6 +335,40 @@ function Card({ s, crops, lang, today, window, analog, whatIfDesc, need, waterin
         </details>
       )}
     </article>
+  );
+}
+
+/** One mark per past season, survived first, so "7 of 25" can be counted by eye (an icon array). */
+function SeasonMarks({ odds, lang }: { odds: OddsResult; lang: Lang }) {
+  const marks = [
+    ...Array<Outcome['kind']>(odds.good).fill('good'),
+    ...Array<Outcome['kind']>(odds.poor).fill('poor'),
+    ...Array<Outcome['kind']>(odds.failed).fill('failed'),
+  ];
+  const label = [`${t(lang, 'outcome.good')} ${odds.good}`, `${t(lang, 'outcome.poor')} ${odds.poor}`,
+    `${t(lang, 'outcome.failed')} ${odds.failed}`].join(' · ');
+  return (
+    <div className="marks" role="img" aria-label={label} title={label} data-testid="marks">
+      {marks.map((k, i) => <span key={i} className={`mark ${k}`} />)}
+    </div>
+  );
+}
+
+/** The NASA checks in one place, each with a plain headline: how far the answer can be trusted. */
+function CheckCard({ current, analogs, imerg, smap, check, lang }: {
+  current?: CurrentState; analogs: Analog[]; imerg?: ImergCell | null; smap?: SmapCell | null; check: SelfCheck | null; lang: Lang;
+}) {
+  return (
+    <section className="card check" aria-labelledby="check-title">
+      <h3 id="check-title">{t(lang, 'check.title')}</h3>
+      <p className="muted">{t(lang, 'check.lead')}</p>
+      <div className="check-list">
+        <AnalogLine current={current} analogs={analogs} lang={lang} />
+        <SelfCheckLine check={check} lang={lang} />
+        <SatelliteRain current={current} imerg={imerg} lang={lang} />
+        <SoilNow smap={smap} lang={lang} />
+      </div>
+    </section>
   );
 }
 

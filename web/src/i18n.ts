@@ -106,7 +106,7 @@ const TH = {
   'badge.why.split': 'ปีที่คล้ายฤดูนี้ให้ผลไม่ตรงกัน',
   'analog.line': 'ฤดูนี้ (ข้อมูลถึง {date}) คล้ายปี {years}',
   'analog.loading': 'กำลังเทียบฤดูนี้กับปีที่ผ่านมา…',
-  'imerg.line': 'ฝนจากดาวเทียม NASA (IMERG) ตั้งแต่ 1 ส.ค. ถึง {date}: {sat} มม. · ข้อมูลที่แบบจำลองใช้ (POWER): {model} มม.',
+  'imerg.line': 'ฝนตั้งแต่ 1 ส.ค. ถึง {date}: ดาวเทียม NASA (IMERG) วัดได้ {sat} มม. ข้อมูลที่แบบจำลองใช้ (POWER) มี {model} มม.',
   'imerg.how': 'ฝนรายวันจากดาวเทียม GPM IMERG เฉลี่ยในช่องเดียวกัน ใช้ตรวจทานข้อมูลฝนที่แบบจำลองใช้',
   'analog.error': 'ดึงข้อมูลฤดูนี้จาก NASA POWER ไม่ได้ จึงยังเทียบกับปีที่ผ่านมาไม่ได้',
   'analog.how': 'เทียบฝน ส.ค.–ต.ค. ฝนตั้งแต่ 1 พ.ย. และความชื้นดินในเขตราก',
@@ -149,6 +149,9 @@ const TH = {
   'hint.position': 'นาลุ่มมีน้ำใต้ดินตื้น ดินจึงชื้นได้นานกว่านาดอน',
   'hint.water': 'ครั้งละราว {mm} มม. จากสระหรือบ่อตื้น',
   'hint.sow': 'วันที่หยอดเมล็ดหลังเกี่ยวข้าว',
+  'summary.riskyDry': 'ถ้าไม่รดน้ำ พื้นที่นี้เสี่ยง แม้แต่{crop}ซึ่งดีที่สุดก็รอดแค่ {good} จาก {total} ฤดู',
+  'check.title': 'เชื่อได้แค่ไหน',
+  'check.lead': 'ตรวจคำตอบกับดาวเทียมของ NASA และกับฤดูที่กำลังเป็นอยู่',
 };
 
 const EN: Record<keyof typeof TH, string> = {
@@ -257,7 +260,7 @@ const EN: Record<keyof typeof TH, string> = {
   'badge.why.split': 'Years like this one disagree',
   'analog.line': 'This season (data to {date}) looks like {years}',
   'analog.loading': 'Comparing this season with past years…',
-  'imerg.line': 'NASA satellite rain (IMERG) since 1 Aug, to {date}: {sat} mm · model data (POWER): {model} mm',
+  'imerg.line': 'Rain since 1 Aug to {date}: NASA satellites (IMERG) saw {sat} mm; the data the model uses (POWER) has {model} mm',
   'imerg.how': 'Daily GPM IMERG satellite rain averaged over the same cell, as a check on the rain the model uses',
   'analog.error': 'Could not fetch this season from NASA POWER, so it cannot be compared with past years',
   'analog.how': 'Compares Aug–Oct rain, rain since 1 Nov and root-zone soil wetness',
@@ -300,6 +303,9 @@ const EN: Record<keyof typeof TH, string> = {
   'hint.position': 'Lowland paddies sit over shallow groundwater, so they stay moist longer than upland fields',
   'hint.water': 'About {mm} mm each time, from a pond or shallow well',
   'hint.sow': 'The day you sow after the rice harvest',
+  'summary.riskyDry': 'Risky here without water: even {crop}, the best option, survived only {good} of {total} past dry seasons.',
+  'check.title': 'How sure is this?',
+  'check.lead': 'The answer checked against NASA satellites and against the season under way',
 };
 
 export type Key = keyof typeof TH;

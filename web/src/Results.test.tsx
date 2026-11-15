@@ -197,3 +197,33 @@ test('the settings the answer depends on come before the answer, as a summary th
   fireEvent.click(screen.getByRole('radio', { name: 'นาดอน' }));
   expect(summary).toHaveTextContent('นาดอน');
 });
+
+test('a field that is risky without water does not also say to leave it bare when water would fix it', () => {
+  render(<Results cell={cell([season(2015, 0, 0.45), season(2016, 0, 0.45)])} lang="en" />);
+  const verdict = screen.getByTestId('summary');
+  expect(verdict).toHaveTextContent(/Risky here without water/);
+  expect(verdict).toHaveTextContent(/If you can water about \d times/);
+  expect(verdict).not.toHaveTextContent(/bare is the safe choice/);
+});
+
+test('each crop card shows one countable mark per past season, survived first', () => {
+  render(<Results cell={cell([season(2015, 5, 0.8), season(2016, 5, 0.8), season(2017, 0, 0.3)])} lang="en" />);
+  const marks = screen.getAllByTestId('marks');
+  expect(marks).toHaveLength(2);
+  const kinds = [...marks[0].children].map((m) => m.className.replace('mark ', ''));
+  expect(kinds).toHaveLength(3);
+  expect(kinds).toEqual([...kinds].sort((a, b) => ['good', 'poor', 'failed'].indexOf(a) - ['good', 'poor', 'failed'].indexOf(b)));
+  expect(marks[0]).toHaveAttribute('role', 'img');
+  expect(marks[0].getAttribute('aria-label')).toMatch(/Survived \d · Poor \d · Failed \d/);
+});
+
+test('the NASA checks sit together under one plain heading, after the options', () => {
+  const smap = { date: '2026-11-12', now: 0.284, past: [{ year: 2020, value: 0.2 }] };
+  render(<Results cell={cell([season(2015, 5, 0.8)])} lang="en" smap={smap} current="error" />);
+  const check = screen.getByRole('region', { name: 'How sure is this?' });
+  expect(check).toContainElement(screen.getByTestId('smap-line'));
+  expect(check).toHaveTextContent(/Could not fetch this season/);
+  const cards = screen.getAllByTestId('card');
+  const lastCard = cards[cards.length - 1];
+  expect(lastCard.compareDocumentPosition(check) & Node.DOCUMENT_POSITION_FOLLOWING).toBeTruthy();
+});

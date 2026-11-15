@@ -1,121 +1,412 @@
-# DEMETER Field Time Machine: handoff and progress report
+# DEMETER Field Time Machine: handoff
 
-**Last updated:** Sun 15 Nov 2026, morning. **Live:** https://salapa0.github.io/demeter-fieldshift/ (deploys from `main` on every push). **Open work:** branch `build/submission-polish`.
-**Deadline:** submit by Sun 15 Nov 2026, 20:00 Thailand time (hard close 23:59).
+**Written:** Sun 15 Nov 2026, early afternoon (Thailand time), after pull request 8 was merged.
+**Live:** https://salapa0.github.io/demeter-fieldshift/ (deploys from `main` on every push and once a day).
+**Code:** https://github.com/salapa0/demeter-fieldshift. Everything is on `main`; no feature branch is open.
+**Deadline:** submit to NASA Space Apps by Sun 15 Nov 2026, 20:00 Thailand time (hard close 23:59).
 
-Read this first, then the blueprint (`docs/superpowers/specs/2026-11-14-field-time-machine-design.md`) for the full design. Where the two disagree about what exists today, this file is right.
+This file is the single place to learn what exists, how it runs, and what to watch. The blueprint
+(`docs/superpowers/specs/2026-11-14-field-time-machine-design.md`) is the original design; where the two disagree,
+this file describes the app as built, and §10 lists every difference and why.
 
-## 1. Status in one paragraph
+---
 
-The MVP core (`build/mvp-core`) is merged to `main`. On top of it, `build/p1-features` adds the sowing window (F12), what-if sliders (F13), this-season look-alike years (F10, live from NASA POWER), a satellite basemap toggle (F16), a my-location button (F1), an About page (F17), and crop and soil values checked against the FAO-56 tables. English is now the default language, with a Thai toggle. The site is live on GitHub Pages and has the team's new design (PR 3). `build/submission-polish` adds a **"times you can water" input** and, on each crop card and in the summary, **how many waterings a crop needs to survive 4 years in 5**; see §5.15. Submission text and a demo script are in `docs/SUBMISSION.md`.
+## 1. Status at a glance
 
-## 2. How to run it
+| Area | State |
+|---|---|
+| App | Feature-complete for the submission. All P0 and P1 features of the blueprint are live except IMERG for past seasons (§12). |
+| NASA data | NASA POWER history for all 194 grid cells over Thailand; GLDAS soil moisture in 185 of them (9 are mostly sea); IMERG rain and SMAP soil moisture for all 194, refreshed daily. |
+| Tests | 70 web tests (Vitest), 10 pipeline tests (unittest). All pass on `main` (§3). |
+| Operations | No one needs to run anything. One secret (`EARTHDATA_TOKEN`) is due to expire around mid-January 2027 (§6). |
+| Open decision | Whether to present the app as covering all of Thailand rather than a Khon Kaen pilot, and how to handle the one-calendar limit for the south and the irrigated central plains (§11.2). |
+| Human tasks left | Phone check, demo video, Space Apps project page, submit (§13). |
+
+---
+
+## 2. What the app does
+
+A rice farmer, or an extension officer helping one, opens the page and taps their field on a map of Thailand (or
+uses the my-location button). The app finds the NASA POWER grid cell around that point (0.5° × 0.625°, about
+55 km) and answers one question: *if you had sown this crop on this date in each of the last 25 dry seasons, how
+often would it have survived on the soil water and the rain that followed?*
+
+What the user sees, top to bottom:
+
+1. **In short:** the best option in one sentence, its sowing deadline, and how many waterings would make it safe.
+2. **This season looks like…:** the three past seasons most like the one under way, from a live NASA POWER fetch.
+3. **NASA satellite rain:** IMERG rain since 1 Aug beside the rain the model uses (POWER), over the same days.
+4. **Soil now:** SMAP root-zone soil moisture on its latest day, and whether that is wetter or drier than on the same
+   date in each year since 2015.
+5. **Inputs:** sowing date, soil texture, field type (lowland paddy or upland), times you can water.
+6. **Three strategy cards:** A keep today's rice → bare field; B the better legume (mung bean or peanut); C the
+   better other crop (sunn hemp or field corn). Each card shows: survived N of 25 seasons; in years like this one;
+   waterings needed; estimated income per rai at a standard price; the latest safe sowing date and days left; the
+   effect on the soil; and under "More", the sowing-window chart, the confidence badge with its reasons, what the
+   data cannot see, and what to ask the extension officer.
+7. **Time machine timeline:** every crop in every past season. Tapping a season opens a drawer with the daily
+   soil-water chart and the day and cause of failure. Under the timeline: the GLDAS self-check line.
+8. **What-if sliders:** less rain or more heat applied to every past season (labelled "not a forecast").
+9. **Sources footer**, **About page**, **Copy link** (the address holds the field and settings), English and Thai
+   with Buddhist-era years.
+
+---
+
+## 3. Run, test, deploy
 
 ```bash
 cd web
 npm install
-npm run dev        # open http://localhost:5173/demeter-fieldshift/
-npm test           # 44 tests
+npm run dev        # http://localhost:5173/demeter-fieldshift/
+npm test           # 70 tests in 10 files
 npm run build      # typecheck + production build into web/dist
 ```
 
-Rebuild the NASA data (optional; it is already committed, about 33 MB):
-
 ```bash
-python pipeline/build_history.py            # all 194 cells, skips files that exist, ~10 min
-python pipeline/build_history.py --limit 1  # just the Khon Kaen pilot cell
+cd pipeline
+python -m unittest test_build_imerg test_build_smap test_build_gldas   # 10 tests, no network
 ```
 
-## 3. What is done and verified
+Local development has no IMERG or SMAP file (they are built in CI with the Earthdata secret and are git-ignored),
+so those two lines do not appear on `localhost`. To see them locally, download the `github-pages` artifact of any
+recent deploy run and copy `data/imerg/current.json` and `data/smap/current.json` into `web/public/data/`.
 
-| Piece | Where | Verified by |
+**Deploying** is automatic: every push to `main` runs `.github/workflows/deploy.yml`, which tests, fetches IMERG
+and SMAP, builds and publishes to GitHub Pages. A deploy takes 10–15 minutes, most of it NASA downloads. Pull
+requests run the same build without publishing.
+
+> **Never re-run an old deploy run.** Re-running a past "Test and deploy" run publishes that run's old build over
+> the live site (this happened once on 14 Nov). To redeploy, re-run the **latest** run on `main`, or push a commit.
+
+---
+
+## 4. How the data flows
+
+```
+                          built once, committed to the repo                     built on every deploy (CI, with the
+                          ───────────────────────────────                     Earthdata secret), never committed
+NASA POWER daily API ──► pipeline/build_history.py ──► web/public/data/grid.json        ───────────────────────────
+                                                      web/public/data/cells/{id}.json   GES DISC OPeNDAP (IMERG)
+Giovanni API (GLDAS) ──► pipeline/build_gldas.py  ──► adds `rootzone` to the cells        └► build_imerg.py ─► data/imerg/current.json
+  (GLDAS workflow, by hand)                                                             NSIDC cloud OPeNDAP (SMAP)
+                                                                                          └► build_smap.py ─► data/smap/current.json
+fetched live by the browser
+───────────────────────────
+NASA POWER daily API (1 Aug → today, tapped cell) ──► "this season looks like…" (data.ts fetchCurrentSeason)
+NASA POWER (whole history) only if a cell file is missing ──► data.ts fetchLiveCell
+```
+
+Every NASA source is averaged into the same POWER grid cell, so all numbers on a page refer to the same ~55 km box.
+
+### Data files
+
+| File | Built by | Contents | Size |
+|---|---|---|---|
+| `web/public/data/grid.json` | `build_history.py` | 194 cells (id, lat, lon), cell size, first and last season | small |
+| `web/public/data/cells/{id}.json` | `build_history.py`, then `build_gldas.py` | `seasons[]` 2001–2025, each 1 Aug → 31 Jul daily: `rain` mm, `tmax`, `tmin` °C, `wetness` (POWER GWETROOT, 0–1), `rootzone` (GLDAS kg/m², 185 cells only); `wetnessScale` p05/p95; `sources` | ~220 KB each, 43 MB total |
+| `web/public/data/imerg/current.json` | `build_imerg.py` (CI) | `start` (1 Aug), `asOf`, `cells: {id: [daily mm or null]}` | ~90 KB |
+| `web/public/data/smap/current.json` | `build_smap.py` (CI) | `date`, `years` (2015…), `cells: {id: {now, past[]}}` in m³/m³ | small |
+| `web/src/data/crops.json` | by hand | four crops: FAO-56 stages, Kc, root depth, p, heat limit, soil effect, sources, `market` price and yield | small |
+
+The data contract in TypeScript is `web/src/engine/types.ts` (cells) and `web/src/data.ts` (`ImergFile`, `SmapFile`).
+
+---
+
+## 5. NASA and partner data
+
+| Source | Product | Access route | Auth | Refresh | Used for |
+|---|---|---|---|---|---|
+| NASA POWER | Daily `PRECTOTCORR`, `T2M_MAX`, `T2M_MIN`, `GWETROOT` (MERRA-2 based), 0.5° × 0.625° | `power.larc.nasa.gov/api/temporal/daily/point` | none | history once; current season live in the browser | All replays; look-alike seasons |
+| GPM IMERG | Late Run daily V07 (`GPM_3IMERGDL`), 0.1° | GES DISC on-premises OPeNDAP, ASCII subset of the Thailand box, `gpm1.gesdisc.eosdis.nasa.gov/opendap/GPM_L3/GPM_3IMERGDL.07/` | Earthdata token, `Authorization: Bearer` | every deploy + daily 01:30 UTC | Satellite rain line (F14) |
+| SMAP | L4 Global 3-hourly 9 km (`SPL4SMGP` v8), `sm_rootzone` | Granules found through public CMR search; Thailand subset read from NSIDC cloud OPeNDAP (`opendap.earthdata.nasa.gov`, DAP2 `.ascii`) | Earthdata token, Bearer | every deploy + daily | Soil-now line (F15) |
+| GLDAS | Noah 2.1 3-hourly (`GLDAS_NOAH025_3H`), `RootMoist_inst`, 0.25° | Giovanni time-series API, `api.giovanni.earthdata.nasa.gov/timeseries` (one point per request) | Earthdata token, Bearer (the `authorizationtoken` header in older examples is refused) | once, by hand (GLDAS workflow) | Self-check and High badge (F11) |
+| FAO-56 | Tables 11, 12, 19, 22 | fao.org web edition | – | – | Crop and soil values |
+| OAE (Thai Office of Agricultural Economics), TDRI | Farm-gate prices and yields | news releases, weekly prices | – | by hand | Income estimate |
+| EOX | Sentinel-2 cloudless 2016, CC BY 4.0 | WMTS tiles | – | – | Satellite basemap |
+| OpenStreetMap via OpenFreeMap | vector tiles | – | – | – | Street basemap |
+
+**How each NASA cell value is made:** IMERG (0.1°) and SMAP (9 km) average the valid pixels whose centres lie inside
+the POWER cell. GLDAS averages the 4–6 land pixels (0.25°) inside the cell, each turned into daily means from
+3-hourly values. Ocean pixels and fill values are dropped.
+
+---
+
+## 6. Secrets and Earthdata access
+
+- **One secret:** `EARTHDATA_TOKEN` in the repo's Actions secrets (added 15 Nov 2026, 02:32 UTC). It is an Earthdata
+  Login user token belonging to a team member's Earthdata account. It is read only by `deploy.yml` and `gldas.yml`.
+- **It expires.** Earthdata Login user tokens are normally valid for 60 days, so expect this one to stop working
+  around **mid-January 2027**. Nothing breaks visibly: the IMERG and SMAP steps are allowed to fail, the deploy still
+  publishes, and the app hides those two lines. The deploy log then shows HTTP 401 in "Fetch IMERG satellite rain"
+  and "Fetch SMAP soil moisture".
+- **To renew:** the account owner signs in at https://urs.earthdata.nasa.gov, opens **Generate Token**, creates a
+  token, and pastes it into GitHub → repo **Settings → Secrets and variables → Actions → `EARTHDATA_TOKEN` →
+  Update**. Then re-run the **latest** deploy run on `main`. Never paste the token into chat, an issue, a commit or a
+  workflow file.
+- **Applications the account has approved** (Earthdata profile → Applications): the GES DISC data archive
+  (needed for IMERG and GLDAS). SMAP from NSIDC worked with the same token without a separate approval step.
+- **A new account** needs the same: sign up at https://urs.earthdata.nasa.gov, approve the GES DISC application,
+  generate a token, and replace the secret.
+
+---
+
+## 7. Workflows
+
+### `deploy.yml`: Test and deploy to GitHub Pages
+- **Triggers:** push to `main`, pull requests (build only), manual, and a daily schedule at 01:30 UTC (08:30 in
+  Thailand) that keeps IMERG and SMAP current with no one on duty.
+- **Steps:** `npm ci` → `npm test` → pipeline unit tests → **Fetch IMERG** (`continue-on-error`) → **Fetch SMAP**
+  (`continue-on-error`) → `npm run build` → upload → deploy (only on `main`, not on pull requests).
+- **Timing:** IMERG fetches 1 Aug → yesterday, about 105 days on 15 Nov, two days at a time; GES DISC answers HTTP 503
+  when pushed harder. It took 6 minutes in the morning of 15 Nov and 11 minutes at midday. It needs 80 % of the days
+  or it writes nothing. SMAP takes about a minute (about 96 small subsets).
+- **A "success" does not prove the data came through.** Because the two fetch steps may fail, check their logs for
+  `wrote …/imerg/current.json` and `wrote …/smap/current.json`.
+
+### `gldas.yml`: GLDAS history (manual only)
+- Past seasons do not change, so GLDAS is built once and committed. Run it again only after adding a season to the
+  cell files.
+- **How to run:** Actions → GLDAS history → Run workflow. It runs 6 parallel jobs (`--shard i/6`), each
+  about 10 minutes, and uploads artifacts `cells-0` … `cells-5`.
+- **How to bring the result into the repo:** `gh run download <run id> -D <dir>`, then copy every cell file whose
+  `sources` contains `rootzone` into `web/public/data/cells/`, check that nothing but `rootzone` changed, and commit.
+  The 15 Nov run was 43678147918.
+
+---
+
+## 8. The model (engine) in brief
+
+All in `web/src/engine/`, pure TypeScript, no network. Values to tune are in `constants.ts`.
+
+- **Replay** (`index.ts`, `replay`): for one crop, season and sowing date, a daily FAO-56 root-zone water balance.
+  ET0 by Hargreaves (`et0.ts`); crop coefficient by the FAO-56 single-Kc curve; total available water
+  `TAW = 1000 × (FC − WP) × root depth`; stress begins past `RAW = p × TAW`. The starting depletion comes from POWER
+  root-zone wetness on the sowing day, scaled between the cell's 5th and 95th percentiles. Rain counts at 80 %.
+  Lowland fields get capillary rise of up to 3.5 mm/day times that day's relative wetness.
+- **Outcome:** *failed* after 7 days in a row of severe stress (Ks < 0.2) past the initial stage, or if less than
+  half the water demand was met, or after 3 days above the crop's heat limit at flowering; *good* if at least 75 % was
+  met; *poor* otherwise; *nodata* if a day is missing.
+- **Odds:** good seasons ÷ seasons with data. **Strategies:** B and C each take the better of two crops; a tie goes
+  to the first.
+- **Sowing window** (F12): odds every 7 days from 1 Nov to 1 Feb; the latest date within 0.10 of the best odds that
+  had at least one good season. **Days left** counts to it during the dry season.
+- **Look-alike years** (`analog.ts`, F10): rain 1 Aug–31 Oct, rain 1 Nov → today, and root-zone wetness today, each
+  standardised over the past seasons; the 3 nearest past seasons.
+- **Waterings:** 30 mm each, given when the soil passes the stress line, at most once a week. "Waterings needed" is
+  the fewest (up to 8) with which the crop survives 4 seasons in 5.
+- **Income** (`income.ts`): good = full yield × price, poor = half, failed = 0, averaged over the seasons with data;
+  plus a good-year figure. Income, not profit.
+- **Self-check** (`selfcheck.ts`, F11): for each past season, mung bean sown on 15 Nov on the farmer's soil and field
+  type. The *model dry-down day* is the first day past the stress point (Dr > RAW). The *GLDAS dry-down day* is the
+  first day GLDAS root-zone moisture, scaled between its own 5th and 95th percentiles for the cell, falls below
+  1 − p (the same stress point). Both are looked for only while the crop is in the field. They agree if within 14
+  days of each other, or if neither dries. Hit rate = agreeing seasons ÷ seasons with data.
+- **Confidence badge** (`badge` in `selfcheck.ts`): **Low** if fewer than 15 seasons have data, the hit rate is
+  below 0.5, or the look-alike years split three ways. **High** if the hit rate is at least 0.75 and all three
+  look-alike years gave this card's crop the same outcome. **Medium** otherwise, including every cell without GLDAS.
+  The card lists every reason. High means the app is confident in its answer, which can be "this crop fails".
+
+**Crops** (`web/src/data/crops.json`; every value has a source line, and all four are flagged as partly assumed):
+
+| Crop | Stages ini/dev/mid/late (days) | Kc ini/mid/end | Root (m) | p | Heat limit | Market |
+|---|---|---|---|---|---|---|
+| Mung bean | 15/20/25/10 | 0.40/1.05/0.35 | 0.6 | 0.45 | 40 °C | 150 kg/rai (estimate) × ฿22.00, Feb 2026 |
+| Peanut | 25/35/45/25 | 0.40/1.15/0.60 | 0.5 | 0.50 | 40 °C | 630 kg/rai × ฿26.41, May 2023 |
+| Field corn | 20/35/40/30 | 0.30/1.20/0.60 | 1.0 | 0.55 | 38 °C | 748 kg/rai × ฿8.19, Aug 2025 |
+| Sunn hemp | 15/35, ploughed in at flowering | 0.40/1.00 | 0.8 | 0.50 | none | no cash income (green manure) |
+
+Defaults: sowing 15 Nov, loamy sand, lowland paddy, no waterings.
+
+---
+
+## 9. Feature register: what is done and how it was checked
+
+| Feature | Where | Evidence |
 |---|---|---|
-| NASA POWER history for all 194 grid cells touching Thailand, seasons 2001–2025 | `pipeline/build_history.py` → `web/public/data/grid.json`, `cells/*.json` | Run log: 194 ok, 0 failed |
-| Replay engine: Hargreaves ET0, FAO-56 Kc curve, root-zone water balance, outcomes, odds, strategies | `web/src/engine/index.ts` | 15 unit tests, incl. FAO-56 Ra example value |
-| Crop and soil values checked against FAO-56 Tables 11, 12, 19, 22 (fao.org web edition, 14 Nov) | `web/src/data/crops.json`, `engine/constants.ts` | Each `sources` line quotes the table row and range it used; see §5.10 |
-| Sowing window (F12): sweep 1 Nov → 1 Feb every 7 days, latest date within 0.10 of the best odds, days left | `engine/index.ts` (`sowingWindow`, `latestSafe`, `daysLeft`), cards B and C | 4 tests incl. "later sowing never raises odds in a steadily drying season"; checked in the browser |
-| What-if sliders (F13): rain −30 % … +10 %, temperature +0 … +3 °C | `Results.tsx` (`WhatIfPanel`) | Test: 0.7 × rain or +3 °C never raises any crop's odds on the real Khon Kaen cell; component test; checked in the browser |
-| This season looks like… (F10): 3 nearest past seasons on Aug–Oct rain, rain since 1 Nov, root-zone wetness; "years like this" odds on cards; analog years marked on the timeline; badge drops to Low when analogs split | `engine/analog.ts`, `data.ts` (`fetchCurrentSeason`) | 5 analog tests + parse test + 2 component tests; live in the browser: cell 16.00, 103.13 → data to 11 Nov 2026, looks like 2025, 2016, 2008 |
-| Waterings: 0–8 waterings of 30 mm, applied when the soil passes the stress line, at most weekly; "waterings needed" per crop | `engine/index.ts` (`replay` `waterings`, `waterNeeded`), `Results.tsx` | 3 engine tests + 1 component test; in the browser near Khon Kaen: sunn hemp 7 → 20 of 25 seasons with 2 waterings |
-| Share link: the address keeps the field, sowing date, soil, field type, waterings and language (`#lat=16.43&lon=102.83&water=2&lang=th`, defaults left out); "Copy link" button with a fallback for in-app browsers that block the clipboard; settings now survive picking another field | `share.ts`, `App.tsx`, `Results.tsx` (`ShareButton`) | 4 codec tests + 3 component tests; in the browser: a Thai link opened on the Khon Kaen cell with its settings, changes rewrote the address, the copy fallback worked in the preview pane. **Not tried in LINE or on a phone** |
-| Income estimate: each cash-crop card shows income per rai at a standard OAE price (average over the past seasons: good = full harvest, poor = half, failed = 0; and a good year). Income, not profit (profit needs each farmer's own costs). Sunn hemp: "no cash income". Yields and prices with sources in `crops.json` `market` | `engine/income.ts`, `crops.json`, `Results.tsx` | 4 engine/data tests + 1 component test; browser near Khon Kaen with 2 waterings: mung bean ≈ ฿330/rai average, ฿3,300 good year; Thai text checked. **Mung bean yield (150 kg/rai) is my estimate; corn yield is a national all-season average; peanut price is 2022/23** |
-| IMERG satellite rain (F14): daily GPM IMERG Late for 1 Aug → yesterday, averaged into each cell, shown beside the POWER rain over the same days | `pipeline/build_imerg.py`, deploy workflow (daily cron 01:30 UTC), `Results.tsx` (`SatelliteRain`) | 3 pipeline tests + 2 component tests; CI run wrote 105 days × 194 cells; live site, Khon Kaen: IMERG 412 mm vs POWER 633 mm to 11 Nov |
-| GLDAS self-check and High badge (F11): for each past season, the day the model's root zone passes mung bean's stress point (sown 15 Nov) vs the day GLDAS root-zone moisture gets as dry on its own 5–95 % scale; agree within 14 days or neither dries. Hit rate under the timeline; badge High at ≥ 0.75 with unanimous look-alike years, Low below 0.5; the badge now lists every reason | `pipeline/build_gldas.py` (one-off GLDAS workflow) → `rootzone` in 185 cell files, `engine/selfcheck.ts`, `Results.tsx` | 3 pipeline tests + 7 engine tests + 2 component tests. Over 185 cells: median hit rate 0.52 (middle half 0.36–0.64), 16 cells ≥ 0.75, 89 below 0.5 |
-| SMAP soil now (F15): SMAP L4 root-zone moisture for the latest full day, and the same date every year since 2015, per cell; "wetter/drier than N of M past years" | `pipeline/build_smap.py`, deploy workflow, `data.ts` (`loadSmap`), `Results.tsx` (`SoilNow`) | 4 pipeline tests + 2 component tests; CI result: see §4 |
-| Tap → cell, with nearest-cell snap for islands and border tips | `web/src/data.ts` | 3 tests on the real grid |
-| Satellite basemap toggle (F16): EOX Sentinel-2 cloudless 2016, CC BY 4.0, under the labels | `MapView.tsx` | Licence read from EOX's WMTS capabilities; tile over Khon Kaen fetched and viewed. **The 2016 layer was not seen rendering in the browser** (an earlier try with the 2017 layer showed blank land, which is why it was swapped) |
-| My-location button (F1) | `App.tsx` | **Not tested**: the preview browser has no GPS |
-| About page (F17): method, data, limits, soil effects, AI use, credits | `About.tsx`, `i18n.ts` | Component test in both languages; not reviewed visually |
-| Screen: map, inputs, 3 cards, timeline, drawer, sources footer, English/Thai, Buddhist-era dates | `App.tsx`, `Results.tsx`, `i18n.ts` | Component tests; manual check at 375 px: no sideways page scroll, timeline scrolls in its own box |
-| Live fallback: if a cell file is missing, the browser fetches NASA POWER directly | `data.ts` (`fetchLiveCell`) | CORS works (the live current-season fetch uses the same API); the missing-file path itself is still not exercised |
+| NASA POWER history, 194 cells, seasons 2001–2025 | `pipeline/build_history.py` | Run log: 194 ok, 0 failed |
+| Replay engine, odds, strategies | `engine/index.ts`, `et0.ts` | 15 tests incl. the FAO-56 Ra example |
+| Crop and soil values against FAO-56 | `crops.json`, `constants.ts` | Each source line quotes the table row (§10.10) |
+| Sowing window and days left (F12) | `engine/index.ts`, cards B and C | 4 tests incl. "later sowing never raises odds in a steadily drying season"; browser |
+| What-if sliders (F13) | `Results.tsx` `WhatIfPanel` | Test on the real Khon Kaen cell: 0.7 × rain or +3 °C never raises any crop's odds; browser |
+| This season looks like… (F10) | `engine/analog.ts`, `data.ts` | 5 analog tests + parse test + 2 component tests; live: cell 16.50, 102.50 → data to 11 Nov 2026, looks like 2008, 2016, 2025 |
+| Waterings and waterings needed | `engine/index.ts`, `Results.tsx` | 3 engine + 1 component test; Khon Kaen: sunn hemp 7 → 20 of 25 seasons with 2 waterings |
+| Share link | `share.ts`, `App.tsx`, `Results.tsx` | 4 codec + 3 component tests; browser incl. the clipboard fallback. **Not tried in LINE or on a phone** |
+| Income estimate | `engine/income.ts`, `crops.json` | 4 + 1 tests; Khon Kaen with 2 waterings: mung bean ≈ ฿330/rai average, ฿3,300 good year |
+| IMERG satellite rain (F14) | `build_imerg.py`, `Results.tsx` `SatelliteRain` | 3 pipeline + 2 component tests; live site, cell 16.50, 103.13: IMERG 412 mm vs POWER 633 mm, 1 Aug → 12 Nov |
+| GLDAS self-check and High badge (F11) | `build_gldas.py`, `engine/selfcheck.ts`, `Results.tsx` | 3 pipeline + 7 engine + 2 component tests. 185 cells: median hit rate 0.52 (middle half 0.36–0.64), 16 cells ≥ 0.75, 89 below 0.5. Browser: cell 16.50, 102.50 (Khon Kaen) 16 of 25, Medium; live site, cell 16.50, 103.13: 20 of 25, both cards High |
+| SMAP soil now (F15) | `build_smap.py`, `data.ts` `loadSmap`, `Results.tsx` `SoilNow` | 4 pipeline + 2 component tests; CI wrote 10 Nov 2026 for 194 cells, past years 2015–2025; browser: cell 16.50, 102.50 "24% … drier than 9 of 11 past years", Thai checked; live site, cell 16.50, 103.13: "26% … drier than 10 of 11" |
+| Tap → cell with nearest-cell snap | `data.ts` | 3 tests on the real grid |
+| Satellite basemap (F16) | `MapView.tsx` | Licence read from EOX; tile viewed. **Not seen rendering in the browser** |
+| My-location button (F1) | `App.tsx` | **Not tested** (no GPS in the preview browser) |
+| About page (F17) | `About.tsx` | Component test in both languages; not reviewed visually |
+| Layout at 375 px | `styles.css` | No sideways scroll; timeline scrolls in its own box |
+| Live fallback when a cell file is missing | `data.ts` `fetchLiveCell` | CORS works; the missing-file path is not exercised |
 
-## 4. What is NOT done
+**High-badge cells** (hit rate ≥ 0.75), useful for the demo: 16.50_103.125 (east of Khon Kaen), 16.00_103.750,
+15.50_103.750, 15.50_104.375, 15.50_105.000, 15.00_103.750, 14.50_103.750, 14.00_100.000, 13.50_100.625,
+10.00_98.750, 10.50_98.750, 8.00_99.375, 7.50_99.375, 7.50_100.000, 6.00_101.250, 5.50_101.250. A card shows High
+only while the look-alike years also agree, so this can change as the season goes on.
 
-| Item | Blueprint ref | Notes |
-|---|---|---|
-| IMERG Final for past seasons' rain (POWER rain still drives the replays) | F14 (history half) | Needs about 9,000 more daily downloads; IMERG is shown for the current season only |
-| SMAP as a look-alike feature | F15 | Left out on purpose, as the blueprint says (§9.7): SMAP starts in 2015 |
-| Daily cron writing `season/current.json` | F10 / M6 | Replaced by a live browser fetch, see §5.11 |
-| AI chat, MODIS check, SRTM | F18–F20 | P2 |
-| Citations for the soil-effect text | §10.2 | About page links the Land Development Department home page for green manure; the team should add a specific document |
-| Demo video, Space Apps project page | Submit | Human tasks |
+---
 
-## 5. Where the build differs from the blueprint and plan
+## 10. Where the build differs from the blueprint, and why
 
-Decisions made during the build. Change them freely, but know they were deliberate.
-
-1. **One screen, no router.** Map and results share a page; state is not in the URL. About is a toggle that hides the field page without unmounting it.
-2. **No Tailwind.** Plain CSS in `web/src/styles.css` with the blueprint's colour tokens, so the team can restyle with any tool.
-3. **Engine is one file** (`engine/index.ts`, now with the sowing window) plus `analog.ts`, `et0.ts`, `constants.ts`, `types.ts`.
-4. **Pipeline is one stdlib-only Python script** (no pandas/shapely) and was run locally, not in GitHub Actions. There are no data workflows yet.
-5. **"Field type" input and groundwater supply.** With the blueprint's model alone, every crop failed in every year in Isan. The engine adds FAO-56 capillary rise: `CAPILLARY_RISE_MAX_MM` (lowland 3.5 mm/day, upland 0) × that day's relative NASA root-zone wetness. Default field type is lowland.
+1. **One screen, no router.** About is a toggle that hides the field page without unmounting it. The URL hash holds
+   the field and settings for sharing.
+2. **No Tailwind.** Plain CSS in `web/src/styles.css` with the blueprint's colour tokens.
+3. **Engine layout:** `index.ts` plus `analog.ts`, `et0.ts`, `income.ts`, `selfcheck.ts`, `constants.ts`, `types.ts`.
+4. **Pipeline is stdlib-only Python**, one script per source. POWER history was built locally; GLDAS, IMERG and SMAP
+   run in GitHub Actions because only the repo secret holds the Earthdata token.
+5. **Field type and groundwater.** With the blueprint's model alone, every crop failed in every year in Isan. The
+   engine adds FAO-56 capillary rise for lowland fields (up to 3.5 mm/day × relative wetness). Default: lowland.
 6. **Default sowing date is 15 Nov**, not 1 Dec.
 7. **Outside-Thailand check** uses the grid only (within one cell of a Thai cell).
-8. **Confidence badge:** Low (< 15 seasons, a self-check hit rate below 0.5, or the look-alike years split 1-1-1); High (hit rate ≥ 0.75 and all three look-alike years agree); otherwise Medium. Without GLDAS data a cell stays at most Medium.
-9. **Wetness is stored to 2 decimals**, not 3, to keep cell files at about 176 KB.
-10. **FAO-56 check (new).** Mung bean Kc end is now 0.35 (Table 12 value for a dry-seed harvest; it was 0.6, the fresh-harvest value). FAO-56 Table 19 has no "clay loam" row, so `clayLoam` now uses its nearest row, "Silt clay loam" (FC 0.335, WP 0.205). Root depths stay at the low end of each Table 22 range, because the footnote reserves the larger values for soils without layering and paddies have a plough pan; switching to the larger values would make every crop look safer. Field corn keeps Kc end 0.60 (harvest at high grain moisture). Other values already matched. Not adopted: the Table 22 footnote adjustment of p for daily ETc.
-11. **Look-alike years come from a live fetch, not a cron (new).** The browser asks NASA POWER for 1 Aug → today for the tapped cell and keeps days up to the last one with every value (POWER runs about 3 days behind). No `season/current.json` and no daily workflow. If the fetch fails, the page says so and the cards show no "years like this" line.
-12. **Sowing window ignores dates where nothing survived (new).** With best odds below the 0.10 tolerance (for example 1 of 25), the blueprint rule would have accepted every date. A date now needs at least one good season to count.
-13. **English is the default language (new),** at the team's request; Thai is one tap away.
-15. **Waterings (new, Sun).** With no farmer to ask and no working satellite check, the pilot area showed a wall of failures for three of four crops: leftover moisture alone cannot carry them. The challenge names water availability as a farmer constraint, so the farmer can now say how many times they can water. One watering = `IRRIGATION_MM` (30 mm), given when depletion passes the stress line, at most every `IRRIGATION_MIN_GAP_DAYS` (7). "Needed" = the fewest waterings (up to 8) with at least `SAFE_SHARE` (0.8) good seasons. All four numbers are starting values.
-16. **Never re-run an old deploy run.** Re-running a past "Test and deploy" run redeploys that run's old build over the live site (this happened once on 14 Nov). To redeploy, re-run the **latest** run on `main` or push a commit.
-17. **Self-check rule differs from the blueprint (new, Sun).** The blueprint's GLDAS bar (25th percentile of 1 Nov–31 Mar values) is far drier than the model's stress point (Dr > RAW); with it the median cell agreed in 8 % of seasons, and in many years the model is already past its stress point on the sowing day. GLDAS is now scaled between its own 5th and 95th percentiles, the way the engine scales POWER wetness, and counted dry at the same stress point (less than 1 − p of the range left). Both are looked for only while the crop is in the field, since the model does not run outside it. This was changed once, for that reason, and not tuned afterwards.
-18. **GLDAS comes from Giovanni, not Data Rods (new).** GES DISC shut down Hydrology Data Rods; Giovanni's time-series API serves one point per request, so each cell averages its 4–6 GLDAS land pixels. It takes `Authorization: Bearer <Earthdata token>`.
-14. **Satellite layer is EOX Sentinel-2 cloudless 2016 (new).** It is the global CC BY 4.0 year. The 2017 layer is also CC BY but blank over Thailand; 2018 onward is CC BY-NC-SA.
+8. **Confidence badge** as in §8, with every reason listed.
+9. **Wetness stored to 2 decimals**, to keep cell files small.
+10. **FAO-56 check.** Mung bean Kc end 0.35 (dry-seed harvest). `clayLoam` uses Table 19's nearest row, "Silt clay
+    loam". Root depths at the low end of Table 22, because paddies have a plough pan. Table 22's p adjustment for
+    daily ETc is not applied.
+11. **Look-alike years come from a live browser fetch**, not a daily `season/current.json`.
+12. **Sowing window ignores dates where nothing survived**; otherwise a best of 1 in 25 would accept every date.
+13. **English is the default language**, at the team's request.
+14. **Satellite layer is EOX Sentinel-2 cloudless 2016**, the global CC BY year; 2017 is blank over Thailand and 2018
+    onward is non-commercial.
+15. **Waterings.** Leftover moisture alone could not carry three of four crops in the pilot area, and the challenge
+    names water availability as a constraint, so the farmer can say how many times they can water. All four
+    waterings constants are starting values.
+16. **Self-check rule.** The blueprint compared the model's stress point with GLDAS's 25th percentile of 1 Nov–31 Mar.
+    That is a much drier bar, and in many years the model is past its stress point on the sowing day; the median
+    cell agreed in 8 % of seasons. Both now use the same stress point, each on its own scale (§8). This was changed
+    once, for that reason, and not tuned afterwards. Both dry-down days are looked for only while the crop is in the
+    field, because the model does not run outside it.
+17. **GLDAS through Giovanni.** GES DISC shut down the Hydrology Data Rods service the blueprint named.
+18. **IMERG and SMAP are checks shown beside the model; they do not drive it.** The replays still use POWER rain. SMAP
+    is not a look-alike feature, as the blueprint says, because it starts in 2015.
+19. **No cron writes data to the repo.** IMERG and SMAP are rebuilt on every deploy instead and never committed, so the
+    repo history does not grow daily.
 
-## 6. Known limits and risks (be honest about these in the pitch)
+---
 
-- **The model is not calibrated.** All thresholds in `web/src/engine/constants.ts` and the groundwater number are starting values. Results show sensible patterns (the rainy south is mostly safe, Isan favours early sowing and short crops), but the exact odds should not be quoted as facts. Mung bean in particular fails almost every season in Isan in this model.
-- **Crop values:** checked against FAO-56 (§5.10), but Thai mung bean stage lengths (70 days), all heat limits and every sunn hemp value are still assumptions, and the cards say so.
-- **Data is a 55 km average** from NASA POWER (MERRA-2 based). IMERG, SMAP and GLDAS are shown beside it as checks; they do not drive the replays.
-- **The self-check is modest:** the median cell agrees with GLDAS in about half of past seasons, so most cards show Medium or Low. GLDAS is itself a model driven by satellite data, not a field measurement.
-- **IMERG and SMAP read from servers that are moving:** GES DISC's on-premises OPeNDAP is due to move to Earthdata Cloud. If a fetch fails, the deploy still goes out and the app hides that line.
-- **The premise is unconfirmed and will stay so for the submission:** nobody has asked an Isan farmer whether water risk is what stops them planting after rice. Say this plainly in the pitch.
-- **MODIS check not done:** the ORNL service was down on both 14 and 15 Nov.
-- **Repo size:** the data adds about 43 MB (33 MB POWER + 10 MB GLDAS). The JS bundle is about 1 MB (MapLibre); Vite warns about it.
+## 11. Known limits and risks (say these plainly in the pitch)
 
-## 7. Suggested next steps, in order
+### 11.1 Science
+- **The model is not calibrated.** Every value in `constants.ts` is a starting value. Patterns are sensible (Isan
+  favours early sowing and short crops) but the odds are not facts. Mung bean fails almost every season in Isan.
+- **The data is a 55 km average.** A single field can be wetter or drier.
+- **The self-check is modest.** The median cell agrees with GLDAS in about half of past seasons, so most cards show
+  Medium or Low. GLDAS is a land model driven by satellite data, not a field measurement. This is a consistency check
+  between two models, not a validation against farms.
+- **IMERG sees less rain than POWER this season** in the north-east (cell 16.50, 103.13: 412 vs 633 mm to 12 Nov), and
+  SMAP says the soil there is drier than in 10 of 11 past years on the same date. The replays use POWER, so they may be optimistic this
+  season. Nobody has checked which source is closer to rain gauges.
+- **Crop values:** Thai mung bean stage lengths, all heat limits and all sunn hemp values are assumptions; the cards
+  say so. The mung bean yield is an estimate; the peanut price dates from 2022/23.
+- **The premise is unconfirmed:** nobody has asked an Isan farmer whether water risk is what stops them planting.
 
-1. Merge `build/submission-polish`, then check the live URL on a real phone.
-2. Check the satellite toggle and the my-location button on a real phone.
-3. Fill in the Space Apps project page from `docs/SUBMISSION.md` and record the video with its script.
-5. 2-minute video, Space Apps project page; submit by 20:00 Sunday.
+### 11.2 Coverage: the whole of Thailand, one calendar
+The data covers all 194 cells, so the app works anywhere in Thailand. The model uses one crop calendar everywhere:
+seasons start on 1 Aug and sowing runs 1 Nov–1 Feb (default 15 Nov). That fits rain-fed rice in the north-east,
+north and much of the centre. It does not fit:
+- **the southern east coast** (Nakhon Si Thammarat, Songkhla, Pattani), where the monsoon peaks October–December and
+  rice is harvested around February–March. A 15 Nov sowing lands in the rains, which is why the south looks "mostly
+  safe": the app answers the wrong question there;
+- **the irrigated central plains**, where many farmers grow a second rice crop with canal water and soils are clay.
+  The waterings input covers part of this; the default soil is Isan's loamy sand.
 
-## 8. File map
+Options: state the limit in the app and the pitch (about 10 minutes), or add regional sowing calendars and defaults
+(about 2 hours with tests: sowing dates to March, default date and soil by region).
+
+### 11.3 Operations
+- **The Earthdata token expires around mid-January 2027** (§6). After that the IMERG and SMAP lines disappear.
+- **GES DISC's on-premises OPeNDAP** (IMERG) is due to move to Earthdata Cloud "no earlier than 30 Sep 2026". When it
+  goes, the IMERG step fails and the line disappears until `build_imerg.py` points at the cloud OPeNDAP, as
+  `build_smap.py` already does.
+- **GES DISC is slow under load:** IMERG returns HTTP 503 with more than two parallel requests.
+- **Repo size:** the data adds about 43 MB (33 MB POWER, 10 MB GLDAS). The JS bundle is about 1 MB (MapLibre).
+
+---
+
+## 12. Not done
+
+| Item | Blueprint ref | Effort | Notes |
+|---|---|---|---|
+| Regional sowing calendars | – | ~2 h | See §11.2 |
+| IMERG Final for past seasons' rain, driving the replays | F14 (history half) | ~3 h of downloads + review | About 9,000 more daily files; would change every result, so it needs its own check |
+| IMERG through Earthdata Cloud OPeNDAP | – | ~30 min | Before the on-premises server closes |
+| Token-expiry warning | – | ~30 min | e.g. fail loudly or open an issue when both fetch steps return 401 |
+| MODIS vegetation check | F19 | – | ORNL service was down on 14 and 15 Nov |
+| AI chat, SRTM | F18, F20 | – | P2 |
+| Specific citations for the soil-effect text | §10.2 | – | About page links only the Land Development Department home page |
+| Real-phone check of the share link in LINE, my-location, satellite toggle | – | ~15 min | Human |
+
+---
+
+## 13. Before 20:00 today
+
+1. Open the live site on a real phone: tap a field, change settings, Copy link and open it in LINE, try my-location
+   and the satellite toggle.
+2. Decide the coverage framing (§11.2) and update `docs/SUBMISSION.md` and the video script to match.
+3. Record the 2-minute video from the script in `docs/SUBMISSION.md`. Cell 16.50, 103.13 (`#lat=16.5&lon=103.125`) shows a
+   High badge, the IMERG line and the SMAP line; the Khon Kaen cell 16.50, 102.50 shows Medium.
+4. Fill in the Space Apps project page from `docs/SUBMISSION.md` and submit.
+
+---
+
+## 14. Troubleshooting
+
+| Symptom | Likely cause | What to do |
+|---|---|---|
+| Satellite rain or soil-now line missing on the live site | That fetch step failed in the last deploy | Open the latest deploy run → "Fetch IMERG satellite rain" / "Fetch SMAP soil moisture". 401: renew the token (§6). 503 or timeouts: re-run the latest run later. |
+| Live site shows an old version | Someone re-ran an old deploy run | Re-run the latest run on `main` |
+| No self-check line on a field | The cell has no GLDAS land pixels (9 coastal cells) | Expected |
+| Badge never reaches High on a field | Hit rate below 0.75, or look-alike years disagree, or no current-season data | Expected; see the card's reasons |
+| "This season looks like…" says it could not load | NASA POWER live API down or slow | Nothing to fix; it comes back on reload |
+| GLDAS request returns 401 "Failed validating user token" | Wrong header | Use `Authorization: Bearer`, not `authorizationtoken` |
+| SMAP OPeNDAP returns empty CSV | DAP4 CSV is empty for these files | Use DAP2 `.ascii`, as `build_smap.py` does |
+
+---
+
+## 15. File map
 
 ```
-pipeline/build_history.py        NASA POWER → web/public/data (stdlib only)
-pipeline/data/thailand.geo.json  coarse Thailand outline (johan/world.geo.json)
-web/public/data/grid.json        194 cells
-web/public/data/cells/*.json     25 seasons of daily rain, tmax, tmin, wetness per cell
-web/src/engine/index.ts          replay engine, odds, strategies, sowing window
-web/src/engine/analog.ts         look-alike past seasons (F10)
-web/src/engine/*.test.ts         engine, window, analog tests (types.ts is the data contract)
-web/src/data/crops.json          crop parameters with FAO-56 sources
-web/src/data.ts                  loading, tap → cell, live POWER fallback, live current season
-web/src/Results.tsx              cards, sowing window, timeline, drawer, chart, what-if sliders
-web/src/App.tsx, MapView.tsx     page shell, MapLibre map, satellite toggle, my location
-web/src/About.tsx                About page
-web/src/i18n.ts                  all English/Thai text and date formats
-.github/workflows/deploy.yml     test + build + deploy to Pages on every push to main
+.github/workflows/deploy.yml        test, fetch IMERG + SMAP, build, deploy; daily 01:30 UTC
+.github/workflows/gldas.yml         GLDAS history, manual, 6 shards
+pipeline/build_history.py           NASA POWER → grid.json, cells/*.json (stdlib only)
+pipeline/build_gldas.py             Giovanni GLDAS → `rootzone` in cells/*.json
+pipeline/build_imerg.py             GES DISC IMERG → data/imerg/current.json (CI only)
+pipeline/build_smap.py              NSIDC SMAP → data/smap/current.json (CI only)
+pipeline/test_build_*.py            pipeline tests, using real server responses as fixtures
+pipeline/data/thailand.geo.json     coarse Thailand outline for picking cells
+web/public/data/grid.json           194 cells
+web/public/data/cells/*.json        25 seasons of daily data per cell
+web/src/engine/index.ts             replay, odds, strategies, sowing window, waterings
+web/src/engine/analog.ts            look-alike seasons (F10)
+web/src/engine/selfcheck.ts         GLDAS self-check and confidence badge (F11)
+web/src/engine/income.ts            income estimate
+web/src/engine/et0.ts               Hargreaves ET0, extraterrestrial radiation
+web/src/engine/constants.ts         every tunable value
+web/src/engine/types.ts             data contract for cells and results
+web/src/data/crops.json             crop values with sources and market prices
+web/src/data.ts                     loading, tap → cell, live POWER, IMERG and SMAP loaders
+web/src/share.ts                    share-link encoding
+web/src/Results.tsx                 summary, NASA lines, inputs, cards, timeline, drawer, what-if
+web/src/App.tsx, MapView.tsx        page shell, map, satellite toggle, my location
+web/src/About.tsx                   About page
+web/src/i18n.ts                     every English and Thai string, date formats
+docs/SUBMISSION.md                  project page text, video script, checklist
+docs/superpowers/specs/             blueprint and the income design
 ```
+
+---
+
+## 16. History
+
+| PR | Branch | What it added |
+|---|---|---|
+| 1 | `build/mvp-core` | Data pipeline, replay engine, three cards, timeline, drawer |
+| 2, 3 | `build/p1-features` | Sowing window, what-if, look-alike years, satellite basemap, my location, About, FAO-56 check, team design |
+| 4 | `build/submission-polish` | Waterings and waterings needed; submission kit |
+| 5 | `build/share-link` | Share link and Copy link |
+| 6 | `build/income-estimate` | Income estimate at standard prices |
+| 7 | `build/earthdata` | IMERG satellite rain (F14), Earthdata secret, daily schedule |
+| 8 | `build/selfcheck-smap` | GLDAS self-check and High badge (F11), SMAP soil now (F15), GLDAS history in the cell files |

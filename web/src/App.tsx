@@ -116,10 +116,10 @@ export default function App() {
     <>
       <a className="skip-link" href="#results-area">{T('app.skip')}</a>
       <header className="topbar">
-        <button className="brand" onClick={() => setPage('field')} aria-label={`DEMETER · ${T('app.subtitle')}`}>
+        <button className="brand" onClick={() => setPage('field')} aria-label={`CERES · ${T('app.subtitle')}`}>
           <BrandMark />
           <span>
-            <strong>DEMETER</strong>
+            <strong>CERES</strong>
             <small>{T('app.subtitle')}</small>
           </span>
         </button>

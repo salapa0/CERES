@@ -1,4 +1,4 @@
-# DEMETER — Field Time Machine: Blueprint
+# CERES — Field Time Machine: Blueprint
 
 **Status:** design, approved choices recorded below. Supersedes `docs/superpowers/plans/2026-11-14-demeter-fieldshift.md` (old Streamlit plan) and the feature table in `README.md`.
 **Event:** NASA Space Apps Challenge 2026, challenge *Field Shift: Adapting Farms with NASA Data*.
@@ -19,11 +19,11 @@
 
 ## 1. The product in one paragraph
 
-After the wet-season rice harvest, a rain-fed rice farmer in Thailand must decide whether to plant a second crop on the moisture left in the soil, which crop, and by when. Getting it wrong loses money on seed and labour; staying cautious leaves the field bare, earns nothing, and leaves sandy soil unimproved. **DEMETER's Field Time Machine** lets the farmer tap their field on a map and then **replays every past dry season since 2001, day by day, for each candidate crop** using NASA data. It shows which seasons each crop would have survived, the day and reason it would have died, how well the model agrees with satellite soil moisture, which past seasons **this** season resembles, and the latest safe sowing date. It compares three strategies, always including today's "rice then bare field", and shows each strategy's effect on soil. Thai first, honest about its limits, a support for the farmer's judgement, never a replacement.
+After the wet-season rice harvest, a rain-fed rice farmer in Thailand must decide whether to plant a second crop on the moisture left in the soil, which crop, and by when. Getting it wrong loses money on seed and labour; staying cautious leaves the field bare, earns nothing, and leaves sandy soil unimproved. **CERES's Field Time Machine** lets the farmer tap their field on a map and then **replays every past dry season since 2001, day by day, for each candidate crop** using NASA data. It shows which seasons each crop would have survived, the day and reason it would have died, how well the model agrees with satellite soil moisture, which past seasons **this** season resembles, and the latest safe sowing date. It compares three strategies, always including today's "rice then bare field", and shows each strategy's effect on soil. Thai first, honest about its limits, a support for the farmer's judgement, never a replacement.
 
 ### Pain points it answers (for the pitch and the About page)
 
-| Pain point | Effect if left alone | What DEMETER gives |
+| Pain point | Effect if left alone | What CERES gives |
 |---|---|---|
 | The farmer does not know the odds that a dry-season crop survives on *their* field | Either a failed crop and debt, or no second crop at all: no dry-season income, soil unimproved, family members leave to find work | Odds per crop from every past season, with the day and cause of each failure |
 | The leftover soil moisture runs out after harvest and nobody can see how fast | Sowing too late wastes the whole season; a missed season means waiting a full year | Latest safe sowing date and days left |
@@ -412,7 +412,7 @@ Fonts: **Noto Sans Thai** for UI and **Noto Serif Thai** for headings (Google Fo
 ### 11.2 Home / map screen
 ```
 ┌───────────────────────────────────────┐
-│ DEMETER  ไทม์แมชชีนแปลงนา      [TH|EN] │
+│ CERES  ไทม์แมชชีนแปลงนา      [TH|EN] │
 │ ฤดูแล้งนี้ ปลูกอะไรดี? แตะที่นาของคุณ  │
 │ ┌───────────────────────────────────┐ │
 │ │        (map of Thailand)          │ │

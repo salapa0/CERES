@@ -1,4 +1,4 @@
-# DEMETER: Field Time Machine
+# CERES: Field Time Machine
 
 **What should a rain-fed rice farmer in Thailand plant after the harvest? Tap your field, and the app replays 25 past dry seasons of NASA data to show how each crop would have done.**
 

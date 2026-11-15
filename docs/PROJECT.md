@@ -1,6 +1,6 @@
-# DEMETER Field Time Machine: the complete project document
+# CERES Field Time Machine: the complete project document
 
-**Team:** DEMETER · **Event:** NASA Space Apps Challenge 2026 · **Challenge:** *Field Shift: Adapting Farms with NASA Data*
+**Team:** CERES · **Event:** NASA Space Apps Challenge 2026 · **Challenge:** *Field Shift: Adapting Farms with NASA Data*
 **Live app:** https://salapa0.github.io/demeter-fieldshift/ · **Code:** https://github.com/salapa0/demeter-fieldshift (MIT licence)
 **State of this document:** written Sun 15 Nov 2026, early afternoon Thailand time, from `main` at pull request 9.
 Every number in it was measured on the code and data in the repository at that point.
@@ -51,7 +51,7 @@ After the wet-season rice harvest, most rain-fed rice fields in Thailand sit bar
 the moisture left in the soil could earn money and improve poor sandy soils, but if the soil dries out before the
 crop matures, the farmer loses seed and labour. Nobody can see how fast the soil will dry, so most farmers do nothing.
 
-**DEMETER's Field Time Machine** lets a farmer, or the extension officer advising them, tap their field on a map of
+**CERES's Field Time Machine** lets a farmer, or the extension officer advising them, tap their field on a map of
 Thailand. The app then *replays every dry season since 2001* for that location, day by day, for four candidate crops,
 using NASA data and the FAO-56 crop water method. It answers in plain language:
 
@@ -99,7 +99,7 @@ cannot see and what to ask the local extension officer. It supports the farmer's
   it matures. One bad experience can make a family never try again.
 
 ### 2.2 The pain points
-| Pain point | Cost if left alone | What DEMETER gives |
+| Pain point | Cost if left alone | What CERES gives |
 |---|---|---|
 | The farmer cannot see the odds that a dry-season crop survives on *their* field | A failed crop and debt, or no second crop at all: no dry-season income, soil left unimproved, family members leave to find work | Survival odds per crop from every past season, with the day and cause of each failure |
 | Leftover moisture runs out after harvest and nobody knows how fast | Sowing late wastes the season; a missed season means waiting a year | Latest safe sowing date and days left |
@@ -125,7 +125,7 @@ Together they let the app replay the past for any field and check itself against
 
 ## 3. Who it is for
 
-| User | Need | How they use DEMETER |
+| User | Need | How they use CERES |
 |---|---|---|
 | **Rain-fed rice farmer** (primary), often over 50, on a phone, more comfortable in Thai | "Should I plant something after the rice, what, and by when?" | Taps their field (or uses location), reads the short answer, changes the sowing date or waterings, shares the link with family or the officer |
 | **Agricultural extension officer** (Department of Agricultural Extension, sub-district level) | Advise many farmers quickly and credibly | Opens a field, walks through the timeline and the soil-water chart with the farmer, uses the "ask your officer" questions, sends a share link over LINE |
@@ -139,7 +139,7 @@ login, works on a slow phone connection (static files, about 220 KB per field).
 
 ## 4. The idea: a time machine for one field
 
-Forecasts say what *might* happen this season. Farmers trust what *did* happen. DEMETER takes the farmer back in time:
+Forecasts say what *might* happen this season. Farmers trust what *did* happen. CERES takes the farmer back in time:
 
 > "If you had sown mung bean on 15 November in each of the last 25 years, here is what would have happened, year by
 > year, on your field's soil and weather."
@@ -163,7 +163,7 @@ Three ideas make it more than a statistics table:
 The *Field Shift* challenge asks teams to help farmers adapt what they grow using NASA data. The blueprint recorded
 these asks and suggestions from the challenge statement (§15 of the blueprint). Each one maps to a built feature:
 
-| The challenge asks or suggests | How DEMETER answers | Where |
+| The challenge asks or suggests | How CERES answers | Where |
 |---|---|---|
 | A decision-support tool using NASA Earth observations | Every answer comes from NASA POWER replays; IMERG, SMAP and GLDAS check them | §8, §9 |
 | Combine Earth data with **local soil** information | Soil texture input (5 FAO-56 textures) and field type (lowland paddy / upland) change the soil water each crop can use | F6, §8.2 |
@@ -194,7 +194,7 @@ these asks and suggestions from the challenge statement (§15 of the blueprint).
 ## 6. What the user sees (screen by screen)
 
 ### 6.1 Home
-- Header: DEMETER logo, "Field Time Machine" / ไทม์แมชชีนแปลงนา, About, EN / ไทย switch.
+- Header: CERES logo, "Field Time Machine" / ไทม์แมชชีนแปลงนา, About, EN / ไทย switch.
 - Question: *What should you plant after the rice harvest?* and a one-line instruction.
 - **Use my location** button.
 - A map of Thailand (street map, or a satellite layer from Sentinel-2) with "Tap anywhere in Thailand".

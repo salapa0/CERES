@@ -1,11 +1,11 @@
-/** Small line icons (24 px grid, currentColor), drawn for DEMETER in the same style as Cloof's. */
+/** Small line icons (24 px grid, currentColor), drawn for CERES in the same style as Cloof's. */
 type P = { size?: number };
 const svg = (size: number) => ({
   width: size, height: size, viewBox: '0 0 24 24', fill: 'none', stroke: 'currentColor', strokeWidth: 2,
   strokeLinecap: 'round' as const, strokeLinejoin: 'round' as const, 'aria-hidden': true,
 });
 
-/** DEMETER mark: a sprout over two furrows, white on ink, like Cloof's app icon. */
+/** CERES mark: a sprout over two furrows, white on ink, like Cloof's app icon. */
 export function BrandMark() {
   return (
     <svg className="brand-mark" viewBox="0 0 40 40" aria-hidden="true">

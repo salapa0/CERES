@@ -1,4 +1,4 @@
-/* DEMETER look: an Isan paddy after the harvest. Paddy-mist ground, white panels, indigo (ผ้าย้อมคราม) for
+/* CERES look: an Isan paddy after the harvest. Paddy-mist ground, white panels, indigo (ผ้าย้อมคราม) for
    anything you can press, and three outcome colours from the field itself: sprout green, rice straw, dry clay.
    Outcomes are told apart by shape too (filled, half, empty), never by colour alone. Light only: it is read outdoors. */
 @import './fonts.css';
@@ -27,8 +27,8 @@
   --off: #8C978F;
   /* The soil-water chart reads these. */
   --sky: #4C82C4; --leaf: var(--sprout); --sun: var(--straw);
-  --display: 'Bricolage Grotesque', 'Demeter Thai', 'Leelawadee UI', 'Segoe UI', system-ui, sans-serif;
-  --text: Figtree, 'Demeter Thai', 'Leelawadee UI', 'Segoe UI', system-ui, sans-serif;
+  --display: 'Bricolage Grotesque', 'Ceres Thai', 'Leelawadee UI', 'Segoe UI', system-ui, sans-serif;
+  --text: Figtree, 'Ceres Thai', 'Leelawadee UI', 'Segoe UI', system-ui, sans-serif;
   --r-card: 14px;
   --r-control: 10px;
   --fs-caption: 13px; --fs-small: 15px; --fs-body: 17px; --fs-title: 19px;

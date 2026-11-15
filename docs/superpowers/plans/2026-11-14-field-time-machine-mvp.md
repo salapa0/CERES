@@ -55,7 +55,7 @@
 ### Task S2: Scaffold, contracts and live Pages (M1)
 
 **Files:**
-- Create: `LICENSE` (MIT, holder "DEMETER team"), `web/` (Vite React TS), `web/vite.config.ts`, `web/tailwind.config.ts`, `web/src/main.tsx`, `web/src/App.tsx`, `web/src/i18n/th.json`, `web/src/i18n/en.json`, `web/src/styles/tokens.css`, `web/src/engine/types.ts`, `web/src/engine/index.ts`, `web/src/engine/constants.ts`, `web/public/data/sample/cell.json`, `web/public/data/sample/grid.json`, `web/public/data/sample/current.json`, `web/src/App.test.tsx`, `pipeline/pyproject.toml`, `pipeline/demeter_pipeline/__init__.py`, `pipeline/tests/test_smoke.py`, `.github/workflows/deploy.yml`
+- Create: `LICENSE` (MIT, holder "CERES team"), `web/` (Vite React TS), `web/vite.config.ts`, `web/tailwind.config.ts`, `web/src/main.tsx`, `web/src/App.tsx`, `web/src/i18n/th.json`, `web/src/i18n/en.json`, `web/src/styles/tokens.css`, `web/src/engine/types.ts`, `web/src/engine/index.ts`, `web/src/engine/constants.ts`, `web/public/data/sample/cell.json`, `web/public/data/sample/grid.json`, `web/public/data/sample/current.json`, `web/src/App.test.tsx`, `pipeline/pyproject.toml`, `pipeline/demeter_pipeline/__init__.py`, `pipeline/tests/test_smoke.py`, `.github/workflows/deploy.yml`
 
 **Interfaces (frozen after this task; lanes import these exactly):**
 - Produces `web/src/engine/types.ts`:
@@ -85,14 +85,14 @@ export interface BadgeResult { level: 'high' | 'medium' | 'low'; reasons: string
 - Sample files follow §8 exactly: `cell.json` holds two synthetic seasons (2015 leap-containing, 2016); `grid.json` holds the Khon Kaen cell `16.50_102.500`.
 
 - [ ] **Step 1:** Scaffold `web/` with `npm create vite@latest web -- --template react-ts`, add Tailwind, MapLibre GL, react-router-dom, `@turf/boolean-point-in-polygon`, Vitest, `@testing-library/react`, jsdom. Add Noto Sans Thai and Noto Serif Thai from Google Fonts in `index.html`. Put the §11.1 colour tokens in `tokens.css`.
-- [ ] **Step 2:** Write `App.test.tsx`: `renders Thai header by default` → `expect(screen.getByRole('heading', { level: 1 })).toHaveTextContent('DEMETER')` and the subtitle from `th.json` key `app.subtitle` = `ไทม์แมชชีนแปลงนา`.
+- [ ] **Step 2:** Write `App.test.tsx`: `renders Thai header by default` → `expect(screen.getByRole('heading', { level: 1 })).toHaveTextContent('CERES')` and the subtitle from `th.json` key `app.subtitle` = `ไทม์แมชชีนแปลงนา`.
 - [ ] **Step 3:** Run `npm --prefix web test -- --run` → FAIL. Implement `App.tsx` with a `HashRouter` and the header. Run → PASS.
 - [ ] **Step 4:** Create `pipeline/pyproject.toml` (package `demeter_pipeline`, Python ≥ 3.11, deps from Tech Stack, `dev` extra with pytest) and `test_smoke.py` (`import demeter_pipeline`). Run `cd pipeline && pip install -e ".[dev]" && pytest -q` → 1 passed.
 - [ ] **Step 5:** Write `types.ts`, the `index.ts` stubs, `constants.ts` and the three sample files. Run `npx --prefix web tsc --noEmit -p web` → no errors.
 - [ ] **Step 6:** Write `deploy.yml`: `on: [push, workflow_call, workflow_dispatch]`; jobs: test (pytest + `npm test -- --run`), build (`npm run build` in `web`), deploy with `actions/upload-pages-artifact` + `actions/deploy-pages`; permissions `pages: write, id-token: write, contents: read`. Deploy only from `main`.
 - [ ] **Step 7:** Enable Pages: `gh api -X POST repos/salapa0/demeter-fieldshift/pages -f build_type=workflow` (ignore "already exists").
 - [ ] **Step 8:** Commit `Scaffold web app, pipeline, contracts and Pages deploy`, push `main`.
-- [ ] **Step 9:** Verify: `gh run watch` shows the deploy succeeding, and `curl -s https://salapa0.github.io/demeter-fieldshift/ | grep -c DEMETER` prints ≥ 1.
+- [ ] **Step 9:** Verify: `gh run watch` shows the deploy succeeding, and `curl -s https://salapa0.github.io/demeter-fieldshift/ | grep -c CERES` prints ≥ 1.
 - [ ] **Step 10:** Tell the human: add repo secrets `EARTHDATA_USERNAME` / `EARTHDATA_PASSWORD` (needed from P1). Then start the three lane sessions from `main`.
 
 ---

@@ -1,4 +1,4 @@
-# DEMETER Field Time Machine: handoff
+# CERES Field Time Machine: handoff
 
 **Written:** Sun 15 Nov 2026, early afternoon (Thailand time), after pull request 8 was merged.
 **Live:** https://salapa0.github.io/demeter-fieldshift/ (deploys from `main` on every push and once a day).

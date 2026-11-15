@@ -310,3 +310,15 @@ test('a crop that never failed has no danger-month line', () => {
   expect(screen.getByTestId('month-odds')).toHaveTextContent(/Nov 2\/2/);
   expect(screen.queryByTestId('danger-month')).toBeNull();
 });
+
+test('the year chart keeps "show all" and the pressed year button when a year or a crop is picked', () => {
+  render(<Results cell={cell([season(2015, 5, 0.8), season(2016, 5, 0.8)])} lang="en" />);
+  const toggle = () => screen.getByRole('button', { name: /Show (all|fewer) crops/ });
+  fireEvent.click(toggle());
+  const year = screen.getAllByRole('button', { name: /2015\/16/ })[0];
+  fireEvent.click(year);
+  expect(document.body.contains(year)).toBe(true); // the same button, so keyboard focus stays where it was
+  expect(toggle()).toHaveAttribute('aria-expanded', 'true');
+  fireEvent.click(screen.getByRole('radio', { name: /Mung bean/ }));
+  expect(toggle()).toHaveAttribute('aria-expanded', 'true');
+});

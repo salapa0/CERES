@@ -2,6 +2,10 @@
 
 Writes web/public/data/imerg/current.json. Needs EARTHDATA_TOKEN (an Earthdata Login user token) in the
 environment; run by the deploy workflow, never by hand with a pasted token. Standard library only.
+
+Past days do not change, and each NASA request takes 10–50 s, so the season is not fetched afresh: the file the
+live site already serves (or, failing that, the copy kept in pipeline/data) supplies the days it holds, and only
+missing days plus the last few known ones are fetched. `--plan` prints that plan without fetching or a token.
 """
 import concurrent.futures
 import datetime as dt
@@ -17,6 +21,8 @@ from pathlib import Path
 ROOT = Path(__file__).resolve().parent.parent
 GRID = ROOT / "web/public/data/grid.json"
 OUT = ROOT / "web/public/data/imerg/current.json"
+BASELINE = ROOT / "pipeline/data/imerg_baseline.json"  # fallback copy; even an old one saves most requests
+REFETCH_DAYS = 3  # the newest days of the Late run can still be revised, so they are fetched again
 # IMERG Late daily, version 7 (0.1°): about a day behind real time. The on-premises GES DISC server is due to move
 # to Earthdata Cloud; if this URL stops working, the deploy keeps the old file out and the app hides the line.
 SERVER = "https://gpm1.gesdisc.eosdis.nasa.gov/opendap/GPM_L3/GPM_3IMERGDL.07"
@@ -71,6 +77,60 @@ def get(url, token):
     return ""
 
 
+def previous_by_day(prev, start, cell_ids):
+    """{date: {cell id: mm or None}} from an earlier output file; {} unless it is this product, season and grid.
+    A day with no value in any cell is left out, so it gets fetched again."""
+    try:
+        if prev.get("product") != PRODUCT or prev.get("start") != start.isoformat():
+            return {}
+        cells = prev["cells"]
+        if not cell_ids or not all(isinstance(cells.get(i), list) for i in cell_ids):
+            return {}
+    except (AttributeError, KeyError, TypeError):
+        return {}
+    known = {}
+    for n in range(max(len(cells[i]) for i in cell_ids)):
+        values = {i: cells[i][n] if n < len(cells[i]) else None for i in cell_ids}
+        if any(v is not None for v in values.values()):
+            known[start + dt.timedelta(n)] = values
+    return known
+
+
+def plan_fetch(have, known, refetch=REFETCH_DAYS):
+    """Days to request: every listed day not known yet, plus the last `refetch` known days."""
+    if not known:
+        return list(have)
+    recent = set(sorted(known)[-refetch:])
+    return [d for d in have if d not in known or d in recent]
+
+
+def live_url():
+    """The file the live site serves; follows the repo name (GITHUB_REPOSITORY in Actions)."""
+    owner, name = os.environ.get("GITHUB_REPOSITORY", "salapa0/CERES").split("/", 1)
+    return f"https://{owner.lower()}.github.io/{name}/data/imerg/current.json"
+
+
+def load_known(start, cell_ids):
+    """The most complete earlier data: the live site's file or the copy kept in the repo; {} if neither fits."""
+    best, source = {}, None
+    for where in (live_url(), BASELINE):
+        try:
+            if isinstance(where, Path):
+                prev = json.loads(where.read_text(encoding="utf-8"))
+            else:
+                with urllib.request.urlopen(where, timeout=30) as r:
+                    prev = json.loads(r.read().decode("utf-8"))
+        except Exception as e:
+            print(f"no earlier data from {where}: {e}", flush=True)
+            continue
+        known = previous_by_day(prev, start, cell_ids)
+        if len(known) > len(best):
+            best, source = known, where
+    if source:
+        print(f"reusing {len(best)} days from {source}", flush=True)
+    return best
+
+
 def month_files(year, month):
     """{date: file name} listed for one month (the listing is public; the version letter changes over time)."""
     with urllib.request.urlopen(f"{SERVER}/{year}/{month:02d}/", timeout=60) as r:
@@ -82,8 +142,9 @@ def month_files(year, month):
 
 
 def main():
+    plan_only = "--plan" in sys.argv[1:]
     token = os.environ.get("EARTHDATA_TOKEN")
-    if not token:
+    if not token and not plan_only:
         sys.exit("EARTHDATA_TOKEN is not set")
     grid = json.loads(GRID.read_text(encoding="utf-8"))
     cells = grid["cells"]
@@ -103,6 +164,12 @@ def main():
     if not have:
         sys.exit("no IMERG files listed for this season")
 
+    known = {d: v for d, v in load_known(start, [c["id"] for c in cells]).items() if d in files}
+    todo = plan_fetch(have, known)
+    print(f"fetching {len(todo)} of {len(have)} days" + (f": {todo[0]} to {todo[-1]}" if todo else ""), flush=True)
+    if plan_only:
+        return
+
     sel = urllib.parse.quote(f"precipitation[0:0][{i0}:{i1}][{j0}:{j1}]", safe="")
 
     def fetch(day):
@@ -113,14 +180,14 @@ def main():
             print(f"{day} failed: {e}", flush=True)
             return day, None
 
-    by_day = {}
+    by_day = dict(known)  # a failed re-fetch keeps the earlier value
     with concurrent.futures.ThreadPoolExecutor(max_workers=2) as pool:
-        for day, means in pool.map(fetch, have):
+        for day, means in pool.map(fetch, todo):
             if means is not None:
                 by_day[day] = means
                 print(f"{day} ok", flush=True)
     if len(by_day) < 0.8 * len(have):
-        sys.exit(f"only {len(by_day)} of {len(have)} days fetched; not writing a patchy file")
+        sys.exit(f"only {len(by_day)} of {len(have)} days available; not writing a patchy file")
 
     last = max(by_day)
     span = [start + dt.timedelta(n) for n in range((last - start).days + 1)]

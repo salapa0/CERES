@@ -25,6 +25,7 @@ export function MapView({ point, onPick, lang, hint }: {
   pick.current = onPick;
   const [satellite, setSatellite] = useState(false);
   const [ready, setReady] = useState(false);
+  const [keyboard, setKeyboard] = useState(false); // the map has keyboard focus: show the cross and the key hint
 
   useEffect(() => {
     const map = new maplibregl.Map({
@@ -43,12 +44,37 @@ export function MapView({ point, onPick, lang, hint }: {
     // The map can be hidden (About page) and shown again; keep its canvas the size of its box.
     const resize = new ResizeObserver(() => map.resize());
     resize.observe(box.current!);
+    // Without a mouse or touch: MapLibre already pans with the arrow keys and zooms with + and −;
+    // Enter or Space picks the spot under the cross at the centre.
+    const canvas = map.getCanvas();
+    const onKey = (e: KeyboardEvent) => {
+      if (e.key !== 'Enter' && e.key !== ' ') return;
+      e.preventDefault();
+      const c = map.getCenter();
+      pick.current(c.lat, c.lng);
+    };
+    const onFocus = () => {
+      let byKey = true;
+      try { byKey = canvas.matches(':focus-visible'); } catch { /* older browsers: show it anyway */ }
+      setKeyboard(byKey);
+    };
+    const onBlur = () => setKeyboard(false);
+    canvas.addEventListener('keydown', onKey);
+    canvas.addEventListener('focus', onFocus);
+    canvas.addEventListener('blur', onBlur);
     mapRef.current = map;
     return () => {
+      canvas.removeEventListener('keydown', onKey);
+      canvas.removeEventListener('focus', onFocus);
+      canvas.removeEventListener('blur', onBlur);
       resize.disconnect();
       map.remove();
     };
   }, []);
+
+  useEffect(() => {
+    mapRef.current?.getCanvas().setAttribute('aria-label', `${t(lang, 'map.title')}. ${t(lang, 'map.keyHint')}`);
+  }, [lang]);
 
   useEffect(() => {
     const map = mapRef.current;
@@ -66,7 +92,10 @@ export function MapView({ point, onPick, lang, hint }: {
   return (
     <div className="map-wrap">
       <div ref={box} className="map" />
-      {hint && !point && <p className="map-hint">{hint}</p>}
+      <div className="map-cross" data-testid="map-cross" aria-hidden="true" hidden={!keyboard} />
+      {keyboard
+        ? <p className="map-hint" aria-hidden="true">{t(lang, 'map.keyHint')}</p>
+        : hint && !point && <p className="map-hint">{hint}</p>}
       <div className="basemap-toggle" role="group" aria-label={`${t(lang, 'map.satellite')} / ${t(lang, 'map.streets')}`}>
         <button aria-pressed={satellite} disabled={!ready} onClick={() => setSatellite(true)}>{t(lang, 'map.satellite')}</button>
         <button aria-pressed={!satellite} onClick={() => setSatellite(false)}>{t(lang, 'map.streets')}</button>

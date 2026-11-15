@@ -7,11 +7,12 @@ import {
 import type { ImergCell, SmapCell } from './data';
 import { incomeEstimate, type IncomeEstimate } from './engine/income';
 import { analogOdds, findAnalogs, type Analog, type CurrentSeason } from './engine/analog';
-import { DEFAULT_POSITION, DEFAULT_SOIL, DEFAULT_SOW, IRRIGATION_MM, SOIL_TEXTURES, WATERINGS_SEARCH_MAX } from './engine/constants';
+import { DEFAULT_POSITION, DEFAULT_SOIL, DEFAULT_SOW, IRRIGATION_MM, WATERINGS_SEARCH_MAX } from './engine/constants';
+import { FieldSettings } from './FieldSettings';
 import { badge, selfCheck, type SelfCheck } from './engine/selfcheck';
 import { formatDate, formatMonthDay, formatSeason, t, type Key, type Lang } from './i18n';
 import { IconClose, IconHistory, IconLeaf, IconPin } from './icons';
-import { SOW_DATES, WATERING_CHOICES, type Settings } from './share';
+import type { Settings } from './share';
 
 const ICON: Record<Outcome['kind'], string> = { good: '🌱', poor: '🍂', failed: '✖', nodata: '·' };
 const KINDS: Outcome['kind'][] = ['good', 'poor', 'failed', 'nodata'];
@@ -78,37 +79,14 @@ export function Results({ cell, lang, current, today = new Date(), initial = {},
         <ShareButton lang={lang} />
       </div>
 
+      <FieldSettings value={{ sow, soil, position, waterings }} lang={lang} onChange={(s) => {
+        setSow(s.sow); setSoil(s.soil); setPosition(s.position); setWaterings(s.waterings);
+      }} />
       <Summary strategies={strategies} crops={crops} windows={windows} lang={lang} today={today} whatIfDesc={whatIfDesc}
         needs={needs} waterings={waterings} />
       <AnalogLine current={current} analogs={analogs} lang={lang} />
       <SatelliteRain current={current} imerg={imerg} lang={lang} />
       <SoilNow smap={smap} lang={lang} />
-
-      <div className="card inputs">
-        <label>{T('input.sow')}
-          <select value={sow} onChange={(e) => setSow(e.target.value)}>
-            {SOW_DATES.map((d) => <option key={d} value={d}>{formatMonthDay(d, lang)}</option>)}
-          </select>
-        </label>
-        <label>{T('input.soil')}
-          <select value={soil} onChange={(e) => setSoil(e.target.value as SoilTexture)}>
-            {(Object.keys(SOIL_TEXTURES) as SoilTexture[]).map((s) => <option key={s} value={s}>{T(`soil.${s}`)}</option>)}
-          </select>
-        </label>
-        <label>{T('input.position')}
-          <select value={position} onChange={(e) => setPosition(e.target.value as FieldPosition)}>
-            <option value="lowland">{T('position.lowland')}</option>
-            <option value="upland">{T('position.upland')}</option>
-          </select>
-        </label>
-        <label>{T('input.water')}
-          <select value={waterings} onChange={(e) => setWaterings(Number(e.target.value))} data-testid="waterings">
-            {WATERING_CHOICES.map((n) => (
-              <option key={n} value={n}>{n === 0 ? T('water.none') : T('water.n', { n, mm: n * IRRIGATION_MM })}</option>
-            ))}
-          </select>
-        </label>
-      </div>
 
       <div className="cards" aria-label={T('results.options')}>
         {strategies.map((s) => (

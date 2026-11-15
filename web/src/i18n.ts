@@ -138,6 +138,17 @@ const TH = {
   'about.ai.body': 'โค้ดและข้อความบางส่วนเขียนโดยมีผู้ช่วยเขียนโค้ด AI (Claude ของ Anthropic) ช่วย ทีมเป็นผู้ตรวจและรับผิดชอบเนื้อหา แอปไม่ได้ใช้ AI ในการคำนวณผล ผลทั้งหมดมาจากสูตร FAO-56 ที่ตรวจสอบได้',
   'about.credits.h': 'ผู้จัดทำ',
   'about.credits.body': 'ทีม DEMETER สำหรับ NASA Space Apps Challenge 2026 โจทย์ Field Shift · ไม่เกี่ยวข้องกับหรือรับรองโดย NASA',
+  'settings.title': 'คิดจากนาแบบนี้',
+  'settings.change': 'เปลี่ยน',
+  'settings.done': 'เสร็จแล้ว',
+  'settings.sow': 'ปลูก {date}',
+  'settings.water0': 'ไม่รดน้ำ',
+  'settings.waterN': 'รดน้ำ {n} ครั้ง',
+  'position.lowland.short': 'นาลุ่ม', 'position.upland.short': 'นาดอน',
+  'hint.soil': 'ไม่แน่ใจ ให้ใช้ดินทรายปนร่วน ซึ่งพบมากในนาอีสาน',
+  'hint.position': 'นาลุ่มมีน้ำใต้ดินตื้น ดินจึงชื้นได้นานกว่านาดอน',
+  'hint.water': 'ครั้งละราว {mm} มม. จากสระหรือบ่อตื้น',
+  'hint.sow': 'วันที่หยอดเมล็ดหลังเกี่ยวข้าว',
 };
 
 const EN: Record<keyof typeof TH, string> = {
@@ -278,6 +289,17 @@ const EN: Record<keyof typeof TH, string> = {
   'about.ai.body': 'Parts of the code and text were written with an AI coding assistant (Claude, by Anthropic); the team reviews them and is responsible for the content. The app does not use AI to compute results: every result comes from FAO-56 formulas you can check',
   'about.credits.h': 'Credits',
   'about.credits.body': 'Team DEMETER, NASA Space Apps Challenge 2026, challenge Field Shift · Not affiliated with or endorsed by NASA',
+  'settings.title': 'Worked out for',
+  'settings.change': 'Change',
+  'settings.done': 'Done',
+  'settings.sow': 'Sow {date}',
+  'settings.water0': 'No watering',
+  'settings.waterN': 'Water {n} times',
+  'position.lowland.short': 'Lowland paddy', 'position.upland.short': 'Upland',
+  'hint.soil': 'Not sure? Keep loamy sand, the most common soil in Isan paddies',
+  'hint.position': 'Lowland paddies sit over shallow groundwater, so they stay moist longer than upland fields',
+  'hint.water': 'About {mm} mm each time, from a pond or shallow well',
+  'hint.sow': 'The day you sow after the rice harvest',
 };
 
 export type Key = keyof typeof TH;

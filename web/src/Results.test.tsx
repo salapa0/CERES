@@ -83,7 +83,8 @@ test('choosing waterings improves a dry field and each crop card says how much w
   expect(screen.getAllByTestId('water-need')).toHaveLength(2);
   expect(screen.getByTestId('summary-water')).toHaveTextContent(/If you can water about \d times/);
   const failedBefore = screen.getAllByRole('button', { name: /✖/ }).length;
-  fireEvent.change(screen.getByTestId('waterings'), { target: { value: '8' } });
+  fireEvent.click(screen.getByRole('button', { name: 'Change' }));
+  fireEvent.click(screen.getByRole('radio', { name: /^8 times/ }));
   expect(screen.queryAllByRole('button', { name: /✖/ }).length).toBeLessThan(failedBefore);
   expect(screen.getAllByText(/Counting your 8 waterings/).length).toBeGreaterThan(0);
 });
@@ -92,9 +93,11 @@ it('starts from settings in a shared link and reports each change so the link ca
   const seen: unknown[] = [];
   render(<Results cell={cell([season(2015, 5, 0.8)])} lang="en"
     initial={{ sow: '12-01', soil: 'sandyLoam', position: 'upland', waterings: 2 }} onSettings={(s) => seen.push(s)} />);
-  expect(screen.getByTestId('waterings')).toHaveValue('2');
-  expect(screen.getByLabelText(/soil/i)).toHaveValue('sandyLoam');
-  fireEvent.change(screen.getByTestId('waterings'), { target: { value: '4' } });
+  expect(screen.getByTestId('settings-summary')).toHaveTextContent('Sow 1 Dec · Sandy loam · Upland · Water 2 times');
+  fireEvent.click(screen.getByRole('button', { name: 'Change' }));
+  expect(screen.getByRole('radio', { name: 'Sandy loam' })).toBeChecked();
+  expect(screen.getByRole('radio', { name: /^2 times/ })).toBeChecked();
+  fireEvent.click(screen.getByRole('radio', { name: /^4 times/ }));
   expect(seen[seen.length - 1]).toEqual({ sow: '12-01', soil: 'sandyLoam', position: 'upland', waterings: 4 });
 });
 
@@ -178,4 +181,19 @@ test('no soil-now line without SMAP data', () => {
 test('no satellite line without IMERG data', () => {
   render(<Results cell={cell([season(2015, 5, 0.8)])} lang="en" />);
   expect(screen.queryByTestId('imerg-line')).toBeNull();
+});
+
+test('the settings the answer depends on come before the answer, as a summary that opens into tap choices', () => {
+  render(<Results cell={cell([season(2015, 5, 0.8)])} lang="th" />);
+  const summary = screen.getByTestId('settings-summary');
+  expect(summary).toHaveTextContent('ปลูก 15 พ.ย. · ดินทรายปนร่วน · นาลุ่ม · ไม่รดน้ำ');
+  expect(summary.compareDocumentPosition(screen.getByTestId('summary')) & Node.DOCUMENT_POSITION_FOLLOWING).toBeTruthy();
+  const change = screen.getByRole('button', { name: 'เปลี่ยน' });
+  expect(change).toHaveAttribute('aria-expanded', 'false');
+  expect(screen.queryByRole('radio')).toBeNull();
+  fireEvent.click(change);
+  expect(change).toHaveAttribute('aria-expanded', 'true');
+  expect(screen.getAllByRole('radiogroup')).toHaveLength(4);
+  fireEvent.click(screen.getByRole('radio', { name: 'นาดอน' }));
+  expect(summary).toHaveTextContent('นาดอน');
 });

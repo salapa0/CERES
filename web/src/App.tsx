@@ -6,13 +6,15 @@ import { t, type Key, type Lang } from './i18n';
 import { BrandMark, FieldsArt, IconLocate } from './icons';
 import { MapView, type MapPoint } from './MapView';
 import { Results, type CurrentState } from './Results';
+import { browserLangs, pickLang, saveLang, savedLang } from './lang';
 import { decodeShare, encodeShare, type Settings } from './share';
 
 type Status = 'idle' | 'loading' | 'loadingLive' | 'outside' | 'error';
 type Locate = 'idle' | 'busy' | 'failed';
 
 export default function App() {
-  const [lang, setLang] = useState<Lang>('en');
+  const [lang, setLangState] = useState<Lang>(() => pickLang({ saved: savedLang(), browser: browserLangs() }));
+  const setLang = (l: Lang) => { setLangState(l); saveLang(l); }; // only a tap on ไทย/EN is remembered
   const [page, setPage] = useState<'field' | 'about'>('field');
   const [grid, setGrid] = useState<Grid | null>(null);
   const [point, setPoint] = useState<MapPoint | null>(null);
@@ -39,7 +41,7 @@ export default function App() {
     opened.current = true;
     const shared = decodeShare(window.location.hash);
     if (!shared) return;
-    if (shared.lang) setLang(shared.lang);
+    if (shared.lang) setLangState(shared.lang);
     setSettings(shared.settings);
     onPick(shared.lat, shared.lon, true);
   }, [grid]); // eslint-disable-line react-hooks/exhaustive-deps

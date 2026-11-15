@@ -152,6 +152,8 @@ const TH = {
   'summary.riskyDry': 'ถ้าไม่รดน้ำ พื้นที่นี้เสี่ยง แม้แต่{crop}ซึ่งดีที่สุดก็รอดแค่ {good} จาก {total} ฤดู',
   'check.title': 'เชื่อได้แค่ไหน',
   'check.lead': 'ตรวจคำตอบกับดาวเทียมของ NASA และกับฤดูที่กำลังเป็นอยู่',
+  'whatif.rainHint': 'ฝนมากหรือน้อยกว่าที่บันทึกไว้ทุกวัน',
+  'whatif.tempHint': 'ร้อนกว่าที่บันทึกไว้ทุกวัน',
 };
 
 const EN: Record<keyof typeof TH, string> = {
@@ -306,6 +308,8 @@ const EN: Record<keyof typeof TH, string> = {
   'summary.riskyDry': 'Risky here without water: even {crop}, the best option, survived only {good} of {total} past dry seasons.',
   'check.title': 'How sure is this?',
   'check.lead': 'The answer checked against NASA satellites and against the season under way',
+  'whatif.rainHint': 'More or less rain than recorded, every day',
+  'whatif.tempHint': 'Hotter than recorded, every day',
 };
 
 export type Key = keyof typeof TH;

@@ -8,13 +8,12 @@ import type { ImergCell, SmapCell } from './data';
 import { incomeEstimate, type IncomeEstimate } from './engine/income';
 import { analogOdds, findAnalogs, type Analog, type CurrentSeason } from './engine/analog';
 import { DEFAULT_POSITION, DEFAULT_SOIL, DEFAULT_SOW, IRRIGATION_MM, WATERINGS_SEARCH_MAX } from './engine/constants';
-import { FieldSettings } from './FieldSettings';
+import { Choices, FieldSettings } from './FieldSettings';
 import { badge, selfCheck, type SelfCheck } from './engine/selfcheck';
 import { formatDate, formatMonthDay, formatSeason, t, type Key, type Lang } from './i18n';
 import { IconClose, IconHistory, IconLeaf, IconPin } from './icons';
 import type { Settings } from './share';
 
-const ICON: Record<Outcome['kind'], string> = { good: '🌱', poor: '🍂', failed: '✖', nodata: '·' };
 const KINDS: Outcome['kind'][] = ['good', 'poor', 'failed', 'nodata'];
 const REAL: WhatIf = { rainFactor: 1, dT: 0 };
 
@@ -107,7 +106,7 @@ export function Results({ cell, lang, current, today = new Date(), initial = {},
         </div>
         <ul className="legend" aria-label={T('legend')}>
           {KINDS.map((k) => (
-            <li key={k}><span className={`swatch ${k}`}>{ICON[k]}</span>{T(`outcome.${k}`)}</li>
+            <li key={k}><span className={`mark ${k}`} aria-hidden="true" />{T(`outcome.${k}`)}</li>
           ))}
           {analogs.length > 0 && <li><span className="swatch analog-swatch" />{T('timeline.analogKey')}</li>}
         </ul>
@@ -132,10 +131,11 @@ export function Results({ cell, lang, current, today = new Date(), initial = {},
                     const isOpen = open?.crop.id === crop.id && open.season.year === cell.seasons[i].year;
                     return (
                       <td key={cell.seasons[i].year}>
-                        <button className={`cell ${o.kind}${isOpen ? ' is-open' : ''}`}
+                        <button className={`cell${isOpen ? ' is-open' : ''}`} aria-pressed={isOpen}
                           onClick={() => setOpen({ crop, season: cell.seasons[i] })}
+                          aria-label={`${formatSeason(cell.seasons[i].year, lang)}: ${T(`outcome.${o.kind}`)}`}
                           title={`${formatSeason(cell.seasons[i].year, lang)}: ${T(`outcome.${o.kind}`)}`}>
-                          {ICON[o.kind]}
+                          <span className={`mark ${o.kind}`} aria-hidden="true" />
                         </button>
                       </td>
                     );
@@ -456,6 +456,10 @@ function WindowChart({ w, lang }: { w: SowingWindow; lang: Lang }) {
   );
 }
 
+const RAIN_STEPS = [-30, -20, -10, 0, 10];
+const HEAT_STEPS = [0, 1, 2, 3];
+
+/** What-if weather as tap choices rather than sliders, which are hard to set on a phone (GOV.UK advice). */
 function WhatIfPanel({ value, onChange, lang }: { value: WhatIf; onChange: (w: WhatIf) => void; lang: Lang }) {
   const T: Tr = (key, vars) => t(lang, key, vars);
   const rainPct = Math.round((value.rainFactor - 1) * 100);
@@ -463,20 +467,14 @@ function WhatIfPanel({ value, onChange, lang }: { value: WhatIf; onChange: (w: W
     <details className="card whatif" data-testid="whatif">
       <summary>{T('whatif.title')}</summary>
       <p className="muted">{T('whatif.note')}</p>
-      <div className="sliders">
-        <label>
-          <span>{T('whatif.rain')}: <strong>{signed(rainPct)}%</strong></span>
-          <input type="range" min={-30} max={10} step={5} value={rainPct} aria-label={T('whatif.rain')}
-            onChange={(e) => onChange({ ...value, rainFactor: 1 + Number(e.target.value) / 100 })} />
-        </label>
-        <label>
-          <span>{T('whatif.temp')}: <strong>{signed(value.dT)}°C</strong></span>
-          <input type="range" min={0} max={3} step={0.5} value={value.dT} aria-label={T('whatif.temp')}
-            onChange={(e) => onChange({ ...value, dT: Number(e.target.value) })} />
-        </label>
-        <button className="button secondary small" onClick={() => onChange(REAL)}
-          disabled={value.rainFactor === 1 && value.dT === 0}>{T('whatif.reset')}</button>
-      </div>
+      <Choices legend={T('whatif.rain')} hint={T('whatif.rainHint')} name="rain" value={String(rainPct)}
+        options={RAIN_STEPS.map((v) => ({ value: String(v), label: `${signed(v)}%` }))}
+        onPick={(v) => onChange({ ...value, rainFactor: 1 + Number(v) / 100 })} />
+      <Choices legend={T('whatif.temp')} hint={T('whatif.tempHint')} name="heat" value={String(value.dT)}
+        options={HEAT_STEPS.map((v) => ({ value: String(v), label: `${signed(v)}°C` }))}
+        onPick={(v) => onChange({ ...value, dT: Number(v) })} />
+      <button className="button secondary small" onClick={() => onChange(REAL)}
+        disabled={value.rainFactor === 1 && value.dT === 0}>{T('whatif.reset')}</button>
     </details>
   );
 }
@@ -496,7 +494,7 @@ function Drawer(p: {
       <div className="drawer-head">
         <h3>
           {lang === 'th' ? crop.nameTh : crop.nameEn} · {T('drawer.season', { season: formatSeason(season.year, lang) })} ·{' '}
-          {ICON[o.kind]} {T(`outcome.${o.kind}`)}
+          <span className={`mark ${o.kind}`} aria-hidden="true" /> {T(`outcome.${o.kind}`)}
         </h3>
         <button className="close" onClick={p.onClose}><IconClose /> {T('drawer.close')}</button>
       </div>

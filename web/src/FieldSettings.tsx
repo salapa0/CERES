@@ -53,7 +53,7 @@ export function FieldSettings({ value, onChange, lang }: { value: Settings; onCh
 }
 
 /** A radio group drawn as large tap chips; arrow keys move between them as in any radio group. */
-function Choices<V extends string>({ legend, hint, name, value, options, onPick }: {
+export function Choices<V extends string>({ legend, hint, name, value, options, onPick }: {
   legend: string; hint: string; name: string; value: V; options: { value: V; label: string }[]; onPick: (v: V) => void;
 }) {
   const id = useId();

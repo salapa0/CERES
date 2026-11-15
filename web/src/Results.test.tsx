@@ -1,4 +1,4 @@
-import { fireEvent, render, screen } from '@testing-library/react';
+import { fireEvent, render, screen, within } from '@testing-library/react';
 import { vi } from 'vitest';
 import type { CellData, Num, SeasonData } from './engine';
 import { Results } from './Results';
@@ -29,7 +29,7 @@ test('English mode uses English titles and CE seasons', () => {
 
 test('tapping a failed season opens a drawer with a real calendar death date', () => {
   render(<Results cell={cell([season(2015, 0, 0.3)])} lang="th" />);
-  fireEvent.click(screen.getAllByRole('button', { name: /✖/ })[0]);
+  fireEvent.click(screen.getAllByRole('button', { name: /ไม่รอด/ })[0]);
   // Sown mid-November 2015, so the crop dies in late 2015 or early 2016 (BE 2558/2559).
   expect(screen.getByTestId('drawer')).toHaveTextContent(/\d{1,2} (พ\.ย\.|ธ\.ค\.|ม\.ค\.|ก\.พ\.) 255[89]/);
 });
@@ -52,7 +52,8 @@ test('cards show the latest safe sowing date and the days left in the season und
 test('the what-if sliders mark the cards as a what-if result and can be reset', () => {
   render(<Results cell={cell([season(2015, 5, 0.8)])} lang="en" />);
   expect(screen.queryByText(/What-if result/)).toBeNull();
-  fireEvent.change(screen.getByLabelText('Rain'), { target: { value: '-30' } });
+  fireEvent.click(screen.getByText('If the weather changed (not a forecast)'));
+  fireEvent.click(screen.getByRole('radio', { name: '−30%' }));
   expect(screen.getAllByText(/What-if result: Rain −30%/)).toHaveLength(2);
   fireEvent.click(screen.getByText('Back to real data'));
   expect(screen.queryByText(/What-if result/)).toBeNull();
@@ -82,10 +83,10 @@ test('choosing waterings improves a dry field and each crop card says how much w
   render(<Results cell={cell([season(2015, 0, 0.45), season(2016, 0, 0.45)])} lang="en" />);
   expect(screen.getAllByTestId('water-need')).toHaveLength(2);
   expect(screen.getByTestId('summary-water')).toHaveTextContent(/If you can water about \d times/);
-  const failedBefore = screen.getAllByRole('button', { name: /✖/ }).length;
+  const failedBefore = screen.getAllByRole('button', { name: /Failed/ }).length;
   fireEvent.click(screen.getByRole('button', { name: 'Change' }));
   fireEvent.click(screen.getByRole('radio', { name: /^8 times/ }));
-  expect(screen.queryAllByRole('button', { name: /✖/ }).length).toBeLessThan(failedBefore);
+  expect(screen.queryAllByRole('button', { name: /Failed/ }).length).toBeLessThan(failedBefore);
   expect(screen.getAllByText(/Counting your 8 waterings/).length).toBeGreaterThan(0);
 });
 
@@ -190,10 +191,11 @@ test('the settings the answer depends on come before the answer, as a summary th
   expect(summary.compareDocumentPosition(screen.getByTestId('summary')) & Node.DOCUMENT_POSITION_FOLLOWING).toBeTruthy();
   const change = screen.getByRole('button', { name: 'เปลี่ยน' });
   expect(change).toHaveAttribute('aria-expanded', 'false');
-  expect(screen.queryByRole('radio')).toBeNull();
+  const settings = screen.getByRole('region', { name: 'คิดจากนาแบบนี้' });
+  expect(within(settings).queryByRole('radio')).toBeNull();
   fireEvent.click(change);
   expect(change).toHaveAttribute('aria-expanded', 'true');
-  expect(screen.getAllByRole('radiogroup')).toHaveLength(4);
+  expect(within(settings).getAllByRole('radiogroup')).toHaveLength(4);
   fireEvent.click(screen.getByRole('radio', { name: 'นาดอน' }));
   expect(summary).toHaveTextContent('นาดอน');
 });
@@ -226,4 +228,11 @@ test('the NASA checks sit together under one plain heading, after the options', 
   const cards = screen.getAllByTestId('card');
   const lastCard = cards[cards.length - 1];
   expect(lastCard.compareDocumentPosition(check) & Node.DOCUMENT_POSITION_FOLLOWING).toBeTruthy();
+});
+
+test('timeline years are buttons named by season and outcome, drawn with the same marks as the cards', () => {
+  render(<Results cell={cell([season(2015, 0, 0.3)])} lang="en" />);
+  const year = screen.getAllByRole('button', { name: '2015/16: Failed' })[0];
+  expect(year.querySelector('.mark.failed')).not.toBeNull();
+  expect(screen.queryByText('✖')).toBeNull();
 });

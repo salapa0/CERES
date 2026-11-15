@@ -17,6 +17,8 @@ asks a simple question for each field: *if you had sown this crop on this date i
 often would it have survived on the water in the soil and the rain that followed?*
 
 - **Tap your field** (or use your location). The app finds the NASA POWER grid cell around it.
+- **Your field first:** a one-line summary of the settings the answer depends on (sowing date, soil, field type,
+  waterings) sits above the answer; Change opens large tap choices.
 - **Three strategy cards:** keep today's rice → bare field; the best legume (mung bean or peanut); the best other
   crop (sunn hemp or field corn). Each card shows the odds ("survived 18 of 25 seasons"), the odds in years that
   look like this one, the latest safe sowing date and the days left, the effect on the soil, a confidence badge,
@@ -37,7 +39,8 @@ often would it have survived on the water in the soil and the rain that followed
   and the odds update. Each crop card also says how many waterings that crop needs to survive 4 years in 5, or that
   it is a crop for irrigated fields.
 - **What-if sliders:** less rain or more heat, applied to every past season (not a forecast).
-- English by default, Thai one tap away, with Buddhist-era years.
+- Opens in the phone's language (Thai on a Thai phone, otherwise English), with ไทย/EN one tap away and Buddhist-era
+  years in Thai. The choice is remembered.
 
 ## Data and method
 

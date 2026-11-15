@@ -154,6 +154,12 @@ const TH = {
   'check.lead': 'ตรวจคำตอบกับดาวเทียมของ NASA และกับฤดูที่กำลังเป็นอยู่',
   'whatif.rainHint': 'ฝนมากหรือน้อยกว่าที่บันทึกไว้ทุกวัน',
   'whatif.tempHint': 'ร้อนกว่าที่บันทึกไว้ทุกวัน',
+  'app.skip': 'ข้ามไปที่ผลลัพธ์',
+  'field.change': 'เลือกนาใหม่',
+  'empty.title': 'แตะที่นาของคุณบนแผนที่',
+  'empty.1': 'แอปหาข้อมูล NASA ของพื้นที่นั้น ย้อนหลัง 25 ฤดูแล้ง',
+  'empty.2': 'ดูว่าถั่วเขียว ถั่วลิสง ข้าวโพดเลี้ยงสัตว์ และปอเทือง รอดกี่ปี และต้องปลูกภายในวันไหน',
+  'empty.3': 'คัดลอกลิงก์ส่งให้เจ้าหน้าที่เกษตรหรือเพื่อนบ้านทาง LINE',
 };
 
 const EN: Record<keyof typeof TH, string> = {
@@ -294,7 +300,7 @@ const EN: Record<keyof typeof TH, string> = {
   'about.ai.body': 'Parts of the code and text were written with an AI coding assistant (Claude, by Anthropic); the team reviews them and is responsible for the content. The app does not use AI to compute results: every result comes from FAO-56 formulas you can check',
   'about.credits.h': 'Credits',
   'about.credits.body': 'Team DEMETER, NASA Space Apps Challenge 2026, challenge Field Shift · Not affiliated with or endorsed by NASA',
-  'settings.title': 'Worked out for',
+  'settings.title': 'Based on',
   'settings.change': 'Change',
   'settings.done': 'Done',
   'settings.sow': 'Sow {date}',
@@ -310,6 +316,12 @@ const EN: Record<keyof typeof TH, string> = {
   'check.lead': 'The answer checked against NASA satellites and against the season under way',
   'whatif.rainHint': 'More or less rain than recorded, every day',
   'whatif.tempHint': 'Hotter than recorded, every day',
+  'app.skip': 'Skip to results',
+  'field.change': 'Pick another field',
+  'empty.title': 'Tap your field on the map',
+  'empty.1': 'The app finds the NASA data for that area, 25 dry seasons back',
+  'empty.2': 'See how often mung bean, peanut, field corn and sunn hemp survived, and the date to plant by',
+  'empty.3': 'Copy the link and send it to your extension officer or a neighbour on LINE',
 };
 
 export type Key = keyof typeof TH;

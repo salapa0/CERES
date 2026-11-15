@@ -9,7 +9,7 @@ const svg = (size: number) => ({
 export function BrandMark() {
   return (
     <svg className="brand-mark" viewBox="0 0 40 40" aria-hidden="true">
-      <rect width="40" height="40" rx="11" fill="#17212B" />
+      <rect width="40" height="40" rx="11" fill="#24407A" />
       <path d="M20 29V18" stroke="#F8FAF5" strokeWidth="2.6" strokeLinecap="round" />
       <path d="M20 19c0-4.5-3.2-7.4-8-7.4 0 4.6 3.2 7.4 8 7.4Z" fill="#7FD3A4" />
       <path d="M20 22c0-4.6 3.3-7.6 8.2-7.6 0 4.7-3.3 7.6-8.2 7.6Z" fill="#F8FAF5" />
@@ -37,13 +37,13 @@ export const IconBack = ({ size = 18 }: P) => (
   <svg {...svg(size)}><path d="M15 6l-6 6 6 6" /></svg>
 );
 
-/** Rice-field rows under the sky band. Decorative only. */
+/** Rice stubble after the harvest, with a green row of the next crop. Decorative only. */
 export function FieldsArt() {
   return (
     <svg className="sky-art" viewBox="0 0 1000 120" preserveAspectRatio="none" aria-hidden="true">
-      <path d="M0 78C180 58 330 70 520 60s320-24 480-10v72H0Z" fill="#CFE6B8" opacity=".75" />
-      <path d="M0 96c210-20 420-14 620-24s260-8 380-2v50H0Z" fill="#AFD394" opacity=".8" />
-      <path d="M0 108c240-10 520-8 1000-14v26H0Z" fill="#8FC27A" opacity=".85" />
+      <path d="M0 78C180 58 330 70 520 60s320-24 480-10v72H0Z" fill="#E6D7A8" opacity=".8" />
+      <path d="M0 96c210-20 420-14 620-24s260-8 380-2v50H0Z" fill="#D6BF7E" opacity=".85" />
+      <path d="M0 108c240-10 520-8 1000-14v26H0Z" fill="#9CC48A" />
     </svg>
   );
 }

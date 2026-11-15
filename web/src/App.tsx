@@ -28,6 +28,7 @@ export default function App() {
   const [settings, setSettings] = useState<Partial<Settings>>({});
   const request = useRef(0); // only the latest tap may update the page
   const resultsRef = useRef<HTMLDivElement>(null);
+  const mapRef = useRef<HTMLElement>(null);
   const T = (key: Key) => t(lang, key);
 
   useEffect(() => {
@@ -56,13 +57,17 @@ export default function App() {
     document.documentElement.lang = lang;
   }, [lang]);
 
-  // When a field's results arrive below the fold (phones), bring their heading into view once.
+  // When a field's results arrive, move focus to their heading so screen readers announce it.
   useEffect(() => {
     const el = resultsRef.current;
     if (!cell || !el) return;
+    el.querySelector<HTMLElement>('#results-title')?.focus({ preventScroll: true });
+    // Below 1024 px the results sit under the map; bring the answer up rather than leave it below the fold.
     const top = el.getBoundingClientRect().top;
-    if (top > window.innerHeight * 0.75) el.scrollIntoView?.({ behavior: 'smooth', block: 'start' });
+    if (window.innerWidth < 1024 && top > 80) el.scrollIntoView?.({ behavior: 'smooth', block: 'start' });
   }, [cell]);
+
+  const toMap = () => mapRef.current?.scrollIntoView?.({ behavior: 'smooth', block: 'start' });
 
   async function onPick(lat: number, lon: number, fly = false) {
     if (!grid) return;
@@ -109,6 +114,7 @@ export default function App() {
 
   return (
     <>
+      <a className="skip-link" href="#results-area">{T('app.skip')}</a>
       <header className="topbar">
         <button className="brand" onClick={() => setPage('field')} aria-label={`DEMETER · ${T('app.subtitle')}`}>
           <BrandMark />
@@ -128,7 +134,7 @@ export default function App() {
         </nav>
       </header>
 
-      <main>
+      <main id="main" className={point ? 'has-field' : undefined}>
         {page === 'about' && <About lang={lang} onBack={() => setPage('field')} />}
 
         {/* Hidden rather than unmounted, so the map and the chosen field survive a visit to About. */}
@@ -144,24 +150,42 @@ export default function App() {
               {locate === 'busy' ? T('map.locating') : T('map.locate')}
             </button>
           </section>
-          {locate === 'failed' && <p className="notice notice-error"><span className="dot" />{T('map.locateFailed')}</p>}
+          {locate === 'failed' && <p className="notice notice-error" role="alert"><span className="dot" />{T('map.locateFailed')}</p>}
 
-          <section className="card map-card" aria-label={T('map.title')}>
-            <MapView point={point} onPick={onPick} lang={lang} hint={T('map.hint')} />
-          </section>
-
-          {status !== 'idle' && (
-            <p className={`notice notice-${status}`} role="status">
-              {busy ? <span className="spinner" /> : <span className="dot" />}
-              {T(`app.${status}` as Key)}
-            </p>
-          )}
-          <div ref={resultsRef} className="results-anchor">
-            {cell && <Results cell={cell} lang={lang} current={current} initial={settings} onSettings={setSettings} imerg={imerg} smap={smap} />}
+          <div className={`workspace${point ? ' has-field' : ''}`}>
+            <div className="map-col">
+              <section ref={mapRef} className="card map-card" aria-label={T('map.title')}>
+                <MapView point={point} onPick={onPick} lang={lang} hint={T('map.hint')} />
+              </section>
+              <p className={`notice notice-${status}`} role="status" hidden={status === 'idle'}>
+                {busy ? <span className="spinner" /> : <span className="dot" />}
+                {status !== 'idle' && T(`app.${status}` as Key)}
+              </p>
+            </div>
+            <div ref={resultsRef} id="results-area" className="results-col" tabIndex={-1}>
+              {cell
+                ? <Results cell={cell} lang={lang} current={current} initial={settings} onSettings={setSettings} imerg={imerg} smap={smap}
+                    onChangeField={toMap} />
+                : !busy && <EmptyState lang={lang} />}
+            </div>
           </div>
         </div>
       </main>
       <footer className="page-foot">{T('app.disclaimer')}</footer>
     </>
+  );
+}
+
+/** Before a field is picked: what will happen, in three steps, so the empty side is an invitation, not a gap. */
+function EmptyState({ lang }: { lang: Lang }) {
+  return (
+    <section className="empty" aria-labelledby="empty-title">
+      <h2 id="empty-title">{t(lang, 'empty.title')}</h2>
+      <ol>
+        <li>{t(lang, 'empty.1')}</li>
+        <li>{t(lang, 'empty.2')}</li>
+        <li>{t(lang, 'empty.3')}</li>
+      </ol>
+    </section>
   );
 }

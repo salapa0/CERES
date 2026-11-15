@@ -29,9 +29,9 @@ function tone(odds: OddsResult | null): 'good' | 'mid' | 'low' | 'none' {
   return share >= 0.6 ? 'good' : share >= 0.3 ? 'mid' : 'low';
 }
 
-export function Results({ cell, lang, current, today = new Date(), initial = {}, onSettings, imerg, smap }: {
+export function Results({ cell, lang, current, today = new Date(), initial = {}, onSettings, imerg, smap, onChangeField }: {
   cell: CellData; lang: Lang; current?: CurrentState; today?: Date; imerg?: ImergCell | null; smap?: SmapCell | null;
-  initial?: Partial<Settings>; onSettings?: (s: Settings) => void;
+  initial?: Partial<Settings>; onSettings?: (s: Settings) => void; onChangeField?: () => void;
 }) {
   const crops = useMemo(loadCrops, []);
   const [sow, setSow] = useState(initial.sow ?? DEFAULT_SOW);
@@ -71,11 +71,14 @@ export function Results({ cell, lang, current, today = new Date(), initial = {},
   return (
     <section className="results" aria-labelledby="results-title">
       <div className="results-head">
-        <h2 id="results-title">{T('field.title')}</h2>
+        <h2 id="results-title" tabIndex={-1}>{T('field.title')}</h2>
         <span className="coord" title={`${T('results.chosen')} · ${T('field.cellNote')}`}>
           <IconPin /> {cell.lat.toFixed(2)}, {cell.lon.toFixed(2)}
         </span>
-        <ShareButton lang={lang} />
+        <div className="results-actions">
+          {onChangeField && <button className="button secondary small change-field" onClick={onChangeField}>{T('field.change')}</button>}
+          <ShareButton lang={lang} />
+        </div>
       </div>
 
       <FieldSettings value={{ sow, soil, position, waterings }} lang={lang} onChange={(s) => {
@@ -228,6 +231,11 @@ function SatelliteRain({ current, imerg, lang }: { current?: CurrentState; imerg
   );
 }
 
+// Thai has no spaces, and a browser may break a crop name it does not know ("ปอเทือ|ง"); keep the name whole.
+const SLOT = ' ';
+const keepWhole = (text: string, name: string) =>
+  text.split(SLOT).flatMap((part, i) => (i ? [<span key={i} className="nobr">{name}</span>, part] : [part]));
+
 /** One-sentence answer: the best crop here, its odds and the date to plant by. */
 function Summary({ strategies, crops, windows, lang, today, whatIfDesc, needs, waterings }: {
   strategies: Strategy[]; crops: Crop[]; windows: Record<string, SowingWindow>; lang: Lang; today: Date;
@@ -250,7 +258,8 @@ function Summary({ strategies, crops, windows, lang, today, whatIfDesc, needs, w
     .sort((a, b) => a.n - b.n)[0];
   // Risky but water would fix it: say so, rather than "leave it bare" followed by a fix (the old contradiction).
   const waterHelps = waterings === 0 && !!thirsty;
-  const main = level !== 'low' ? T('summary.best', vars) : waterHelps ? T('summary.riskyDry', vars) : T('summary.risky', vars);
+  const mainKey: Key = level !== 'low' ? 'summary.best' : waterHelps ? 'summary.riskyDry' : 'summary.risky';
+  const main = keepWhole(T(mainKey, { ...vars, crop: SLOT }), name);
   return (
     <div className={`card summary tone-${level}`} data-testid="summary">
       <p className="summary-kicker">{T('summary.kicker')}</p>
@@ -263,7 +272,7 @@ function Summary({ strategies, crops, windows, lang, today, whatIfDesc, needs, w
       )}
       {level !== 'good' && waterHelps && thirsty && (
         <p className="summary-plant" data-testid="summary-water">
-          {T('summary.water', { crop: lang === 'th' ? thirsty.c.nameTh : thirsty.c.nameEn, n: thirsty.n, mm: thirsty.n * IRRIGATION_MM })}
+          {keepWhole(T('summary.water', { crop: SLOT, n: thirsty.n, mm: thirsty.n * IRRIGATION_MM }), lang === 'th' ? thirsty.c.nameTh : thirsty.c.nameEn)}
         </p>
       )}
       {whatIfDesc && <p className="summary-note">{T('summary.whatIf')}</p>}

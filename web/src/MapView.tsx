@@ -31,7 +31,7 @@ export function MapView({ point, onPick, lang, hint }: {
       container: box.current!, style: STYLE, center: THAILAND_CENTER, zoom: 4.6, attributionControl: { compact: true },
     });
     map.addControl(new maplibregl.NavigationControl(), 'top-right');
-    markerRef.current = new maplibregl.Marker({ color: '#1F5FBF' });
+    markerRef.current = new maplibregl.Marker({ color: '#24407A' });
     map.on('click', (e) => pick.current(e.lngLat.lat, e.lngLat.lng));
     map.on('load', () => {
       map.addSource('satellite', { type: 'raster', tiles: [SATELLITE_TILES], tileSize: 256, maxzoom: 14, attribution: SATELLITE_CREDIT });

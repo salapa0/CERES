@@ -8,14 +8,13 @@ import type { ImergCell, SmapCell } from './data';
 import { incomeEstimate, type IncomeEstimate } from './engine/income';
 import { analogOdds, findAnalogs, type Analog, type CurrentSeason } from './engine/analog';
 import { DEFAULT_POSITION, DEFAULT_SOIL, DEFAULT_SOW, IRRIGATION_MM, WATERINGS_SEARCH_MAX } from './engine/constants';
-import { Choices, FieldSettings } from './FieldSettings';
+import { describeWhatIf, FieldSettings, REAL } from './FieldSettings';
 import { badge, selfCheck, type SelfCheck } from './engine/selfcheck';
 import { formatDate, formatMonthDay, formatSeason, t, type Key, type Lang } from './i18n';
 import { IconClose, IconHistory, IconLeaf, IconPin } from './icons';
 import type { Settings } from './share';
 
 const KINDS: Outcome['kind'][] = ['good', 'poor', 'failed', 'nodata'];
-const REAL: WhatIf = { rainFactor: 1, dT: 0 };
 
 /** Live data for the season under way: still loading, failed, or loaded. */
 export type CurrentState = 'loading' | 'error' | CurrentSeason;
@@ -81,9 +80,8 @@ export function Results({ cell, lang, current, today = new Date(), initial = {},
         </div>
       </div>
 
-      <FieldSettings value={{ sow, soil, position, waterings }} lang={lang} onChange={(s) => {
-        setSow(s.sow); setSoil(s.soil); setPosition(s.position); setWaterings(s.waterings);
-      }} />
+      <FieldSettings value={{ sow, soil, position, waterings }} lang={lang} weather={whatIfNow} onWeather={setWhatIf}
+        onChange={(s) => { setSow(s.sow); setSoil(s.soil); setPosition(s.position); setWaterings(s.waterings); }} />
       <Summary strategies={strategies} crops={crops} windows={windows} lang={lang} today={today} whatIfDesc={whatIfDesc}
         needs={needs} waterings={waterings} />
 
@@ -155,8 +153,6 @@ export function Results({ cell, lang, current, today = new Date(), initial = {},
           whatIf={whatIf} waterings={waterings} lang={lang} onClose={() => setOpen(null)} />
       )}
 
-      <WhatIfPanel value={whatIfNow} onChange={setWhatIf} lang={lang} />
-
       <footer className="sources" title={T('field.cellNote')}>
         <strong>{T('sources.title')}:</strong> {Object.values(cell.sources).join(' · ')}
         {current && typeof current === 'object' && <> · {T('sources.current')}</>}
@@ -165,15 +161,6 @@ export function Results({ cell, lang, current, today = new Date(), initial = {},
     </section>
   );
 }
-
-function describeWhatIf(w: WhatIf, lang: Lang): string | null {
-  if (w.rainFactor === 1 && w.dT === 0) return null;
-  const parts: string[] = [];
-  if (w.rainFactor !== 1) parts.push(`${t(lang, 'whatif.rain')} ${signed(Math.round((w.rainFactor - 1) * 100))}%`);
-  if (w.dT !== 0) parts.push(`${t(lang, 'whatif.temp')} ${signed(w.dT)}°C`);
-  return parts.join(', ');
-}
-const signed = (v: number) => (v > 0 ? `+${v}` : v < 0 ? `−${Math.abs(v)}` : '0');
 
 function AnalogLine({ current, analogs, lang }: { current?: CurrentState; analogs: Analog[]; lang: Lang }) {
   if (!current) return null;
@@ -462,29 +449,6 @@ function WindowChart({ w, lang }: { w: SowingWindow; lang: Lang }) {
         <span>{formatMonthDay(w.points[w.points.length - 1].sowMonthDay, lang)}</span>
       </p>
     </div>
-  );
-}
-
-const RAIN_STEPS = [-30, -20, -10, 0, 10];
-const HEAT_STEPS = [0, 1, 2, 3];
-
-/** What-if weather as tap choices rather than sliders, which are hard to set on a phone (GOV.UK advice). */
-function WhatIfPanel({ value, onChange, lang }: { value: WhatIf; onChange: (w: WhatIf) => void; lang: Lang }) {
-  const T: Tr = (key, vars) => t(lang, key, vars);
-  const rainPct = Math.round((value.rainFactor - 1) * 100);
-  return (
-    <details className="card whatif" data-testid="whatif">
-      <summary>{T('whatif.title')}</summary>
-      <p className="muted">{T('whatif.note')}</p>
-      <Choices legend={T('whatif.rain')} hint={T('whatif.rainHint')} name="rain" value={String(rainPct)}
-        options={RAIN_STEPS.map((v) => ({ value: String(v), label: `${signed(v)}%` }))}
-        onPick={(v) => onChange({ ...value, rainFactor: 1 + Number(v) / 100 })} />
-      <Choices legend={T('whatif.temp')} hint={T('whatif.tempHint')} name="heat" value={String(value.dT)}
-        options={HEAT_STEPS.map((v) => ({ value: String(v), label: `${signed(v)}°C` }))}
-        onPick={(v) => onChange({ ...value, dT: Number(v) })} />
-      <button className="button secondary small" onClick={() => onChange(REAL)}
-        disabled={value.rainFactor === 1 && value.dT === 0}>{T('whatif.reset')}</button>
-    </details>
   );
 }
 

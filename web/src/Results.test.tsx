@@ -49,13 +49,18 @@ test('cards show the latest safe sowing date and the days left in the season und
   expect(windows[0]).toHaveTextContent('เหลืออีก 78 วัน');
 });
 
-test('the what-if sliders mark the cards as a what-if result and can be reset', () => {
+test('the weather to test is one of the settings, shown in the summary line, and can be reset', () => {
   render(<Results cell={cell([season(2015, 5, 0.8)])} lang="en" />);
+  const summary = screen.getByTestId('settings-summary');
+  expect(summary).toHaveTextContent(/· Real weather$/);
+  expect(screen.queryByTestId('whatif')).toBeNull();
   expect(screen.queryByText(/What-if result/)).toBeNull();
-  fireEvent.click(screen.getByText('If the weather changed (not a forecast)'));
+  fireEvent.click(screen.getByRole('button', { name: 'Change' }));
+  expect(screen.getByText(/Not a forecast/)).toBeInTheDocument();
   fireEvent.click(screen.getByRole('radio', { name: '−30%' }));
-  expect(screen.getAllByText(/What-if result: Rain −30%/)).toHaveLength(2);
-  fireEvent.click(screen.getByText('Back to real data'));
+  expect(summary).toHaveTextContent(/Rain −30%$/);
+  expect(screen.getAllByText(/What-if result: Rain −30%/).length).toBeGreaterThan(0);
+  fireEvent.click(screen.getByRole('button', { name: 'Back to real data' }));
   expect(screen.queryByText(/What-if result/)).toBeNull();
 });
 
@@ -195,7 +200,8 @@ test('the settings the answer depends on come before the answer, as a summary th
   expect(within(settings).queryByRole('radio')).toBeNull();
   fireEvent.click(change);
   expect(change).toHaveAttribute('aria-expanded', 'true');
-  expect(within(settings).getAllByRole('radiogroup')).toHaveLength(4);
+  expect(within(settings).getAllByRole('radiogroup')).toHaveLength(6); // soil, position, water, sow, rain, heat
+  expect(summary).toHaveTextContent('ไม่รดน้ำ · อากาศตามจริง');
   fireEvent.click(screen.getByRole('radio', { name: 'นาดอน' }));
   expect(summary).toHaveTextContent('นาดอน');
 });

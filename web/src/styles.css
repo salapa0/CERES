@@ -284,13 +284,11 @@ main {
 .drawer figcaption { margin-top: 6px; }
 
 /* What-if */
-.whatif { padding: 0 16px; }
-.whatif > summary { min-height: 56px; display: flex; align-items: center; justify-content: space-between; gap: 10px; list-style: none; cursor: pointer; font-family: var(--display); font-weight: 700; font-size: 17px; color: var(--ink); }
-.whatif > summary::-webkit-details-marker { display: none; }
-.whatif > summary::after { content: ''; flex-shrink: 0; width: 8px; height: 8px; margin-right: 4px; border-right: 2px solid var(--kram); border-bottom: 2px solid var(--kram); transform: rotate(45deg) translateY(-2px); transition: transform .15s; }
-.whatif[open] > summary::after { transform: rotate(-135deg) translateY(-2px); }
-.whatif[open] { display: flex; flex-direction: column; gap: 14px; padding-bottom: 16px; }
-.whatif .button { align-self: flex-start; }
+/* Weather sits last in the settings panel, set apart because it changes the past record, not the field. */
+.weather-set { display: flex; flex-direction: column; gap: 12px; padding: 14px; border-radius: 12px; background: var(--straw-soft); }
+.weather-title { margin: 0; font-family: var(--display); font-size: 17px; color: var(--ink); }
+.weather-set > .choices-hint { margin: -8px 0 0; color: var(--ink-2); }
+.weather-set .button { align-self: flex-start; }
 
 .sources { color: var(--muted); font-size: var(--fs-caption); line-height: 1.6; padding: 0 4px; overflow-wrap: anywhere; }
 .sources strong { color: var(--ink-2); }

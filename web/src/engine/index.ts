@@ -6,7 +6,7 @@ import {
 } from './constants';
 import { extraterrestrialRadiation, hargreavesEt0 } from './et0';
 import type {
-  CellData, Crop, FieldPosition, OddsResult, Outcome, ReplayArgs, SeasonData, SoilTexture, Strategy, Timeline, WhatIf,
+  CellData, Crop, FieldPosition, OddsResult, Outcome, ReplayArgs, SeasonData, SoilTexture, Timeline, WhatIf,
 } from './types';
 
 const DAY_MS = 86_400_000;
@@ -229,24 +229,6 @@ export function waterNeeded(
     if (o.good / o.total >= SAFE_SHARE) return waterings;
   }
   return null;
-}
-
-/** The three cards: A today's rice → bare, B best legume, C best other crop. */
-export function buildStrategies(timeline: Timeline, crops: Crop[]): Strategy[] {
-  const pick = (first: string, second: string): Strategy => {
-    const a = odds(timeline[first] ?? []);
-    const b = odds(timeline[second] ?? []);
-    const [best, alt, bestOdds] = b.good > a.good ? [second, first, b] : [first, second, a]; // tie → first
-    return {
-      id: 'B', cropId: best, altCropId: alt, odds: bestOdds,
-      soilEffect: crops.find((c) => c.id === best)?.soilEffect ?? 'uses',
-    };
-  };
-  return [
-    { id: 'A', cropId: null, altCropId: null, odds: null, soilEffect: 'bare' },
-    pick('mungbean', 'peanut'),
-    { ...pick('sunnhemp', 'maize'), id: 'C' },
-  ];
 }
 
 export * from './types';

@@ -1,13 +1,14 @@
-import { useDeferredValue, useEffect, useMemo, useRef, useState } from 'react';
+import { useDeferredValue, useEffect, useId, useMemo, useRef, useState } from 'react';
 import {
-  buildStrategies, dayIndexToDate, daysLeft, loadCrops, replay, runTimeline, seasonLength, sowingWindow, waterNeeded,
-  type CellData, type Crop, type FieldPosition, type OddsResult, type Outcome, type SeasonData, type SoilTexture,
-  type SowingWindow, type Strategy, type WhatIf,
+  dayIndexToDate, daysLeft, loadCrops, odds, replay, runTimeline, seasonLength, sowingWindow, waterNeeded,
+  type CellData, type Crop, type CropGroup, type FieldPosition, type OddsResult, type Outcome, type SeasonData, type SoilTexture,
+  type SowingWindow, type WhatIf,
 } from './engine';
 import type { ImergCell, SmapCell } from './data';
 import { incomeEstimate, type IncomeEstimate } from './engine/income';
 import { analogOdds, findAnalogs, type Analog, type CurrentSeason } from './engine/analog';
 import { DEFAULT_POSITION, DEFAULT_SOIL, DEFAULT_SOW, IRRIGATION_MM, WATERINGS_SEARCH_MAX } from './engine/constants';
+import { recommend, type Recommendation } from './engine/recommend';
 import { describeWhatIf, FieldSettings, REAL } from './FieldSettings';
 import { badge, selfCheck, type SelfCheck } from './engine/selfcheck';
 import { formatDate, formatMonthDay, formatSeason, t, type Key, type Lang } from './i18n';
@@ -15,13 +16,16 @@ import { IconClose, IconHistory, IconLeaf, IconPin } from './icons';
 import type { Settings } from './share';
 
 const KINDS: Outcome['kind'][] = ['good', 'poor', 'failed', 'nodata'];
+const GROUPS: CropGroup[] = ['legume', 'cash', 'veg', 'manure'];
+/** The "leave it bare" choice: not a crop, so it has no row in the year chart. */
+const FALLOW = 'fallow';
 
 /** Live data for the season under way: still loading, failed, or loaded. */
 export type CurrentState = 'loading' | 'error' | CurrentSeason;
 
 type Tr = (key: Key, vars?: Record<string, string | number>) => string;
 
-/** Colour of a card's odds: green when most seasons survived, amber for some, red for few. */
+/** Colour of a crop's odds: green when most years survived, amber for some, red for few. */
 function tone(odds: OddsResult | null): 'good' | 'mid' | 'low' | 'none' {
   if (!odds || odds.total === 0) return 'none';
   const share = odds.good / odds.total;
@@ -41,17 +45,28 @@ export function Results({ cell, lang, current, today = new Date(), initial = {},
   report.current = onSettings;
   useEffect(() => { report.current?.({ sow, soil, position, waterings }); }, [sow, soil, position, waterings]);
   const [whatIfNow, setWhatIf] = useState<WhatIf>(REAL);
-  const whatIf = useDeferredValue(whatIfNow); // keeps the sliders smooth while the replays catch up
+  const whatIf = useDeferredValue(whatIfNow); // keeps the choices responsive while the replays catch up
   const [open, setOpen] = useState<{ crop: Crop; season: SeasonData } | null>(null);
+  // The farmer's own pick; until they make one, the choice follows the recommendation as settings change.
+  const [picked, setPicked] = useState<string | null>(null);
 
   const timeline = useMemo(
     () => runTimeline(cell, crops, sow, soil, position, whatIf, waterings),
     [cell, crops, sow, soil, position, whatIf, waterings]);
-  const strategies = useMemo(() => buildStrategies(timeline, crops), [timeline, crops]);
-  const windows = useMemo(() => Object.fromEntries(crops
-    .filter((c) => strategies.some((s) => s.cropId === c.id))
-    .map((c) => [c.id, sowingWindow(cell, c, soil, position, whatIf, waterings)])),
-    [cell, crops, strategies, soil, position, whatIf, waterings]);
+  const rec = useMemo(() => recommend(timeline, crops), [timeline, crops]);
+  const shown = picked ?? rec.cropId ?? rec.closest ?? FALLOW;
+  const shownCrop = crops.find((c) => c.id === shown) ?? null;
+  const oddsOf = useMemo(
+    () => Object.fromEntries(crops.map((c) => [c.id, odds(timeline[c.id] ?? [])])) as Record<string, OddsResult>,
+    [timeline, crops]);
+  const incomes = useMemo(
+    () => Object.fromEntries(crops.map((c) => [c.id, incomeEstimate(timeline[c.id] ?? [], c.market)])) as Record<string, IncomeEstimate | null>,
+    [timeline, crops]);
+  // The sowing sweep is costly (a replay per date per year), so only for the crops on screen.
+  const windows = useMemo(() => Object.fromEntries([...new Set([shownCrop?.id, rec.cropId])]
+    .filter((id): id is string => !!id)
+    .map((id) => [id, sowingWindow(cell, crops.find((c) => c.id === id)!, soil, position, whatIf, waterings)])) as Record<string, SowingWindow>,
+  [cell, crops, shownCrop, rec.cropId, soil, position, whatIf, waterings]);
   // How many waterings each crop would need to be safe, whatever the farmer has chosen above.
   const needs = useMemo(() => Object.fromEntries(
     crops.map((c) => [c.id, waterNeeded(cell, c, sow, soil, position, whatIf)])), [cell, crops, sow, soil, position, whatIf]);
@@ -82,26 +97,46 @@ export function Results({ cell, lang, current, today = new Date(), initial = {},
 
       <FieldSettings value={{ sow, soil, position, waterings }} lang={lang} weather={whatIfNow} onWeather={setWhatIf}
         onChange={(s) => { setSow(s.sow); setSoil(s.soil); setPosition(s.position); setWaterings(s.waterings); }} />
-      <Summary strategies={strategies} crops={crops} windows={windows} lang={lang} today={today} whatIfDesc={whatIfDesc}
-        needs={needs} waterings={waterings} />
+      <Summary rec={rec} crops={crops} oddsOf={oddsOf} incomes={incomes} window={rec.cropId ? windows[rec.cropId] : undefined}
+        lang={lang} today={today} whatIfDesc={whatIfDesc} needs={needs} waterings={waterings} />
 
-      <div className="cards" aria-label={T('results.options')}>
-        {strategies.map((s) => (
-          <Card key={s.id} s={s} crops={crops} lang={lang} today={today}
-            window={s.cropId ? windows[s.cropId] : undefined}
-            analog={s.cropId && analogs.length ? analogOdds(timeline[s.cropId], cell.seasons, analogs) : null}
-            need={s.cropId ? needs[s.cropId] : undefined} waterings={waterings}
-            income={s.cropId ? incomeEstimate(timeline[s.cropId] ?? [], crops.find((c) => c.id === s.cropId)?.market) : null}
-            hitRate={hitRate} whatIfDesc={whatIfDesc} />
-        ))}
-      </div>
+      <CropPicker crops={crops} shown={shown} rec={rec} oddsOf={oddsOf} incomes={incomes} lang={lang} onPick={setPicked} />
+      <CropDetail crop={shownCrop} o={shownCrop ? oddsOf[shownCrop.id] : null} isRec={shown === rec.cropId}
+        income={shownCrop ? incomes[shownCrop.id] : null} window={shownCrop ? windows[shownCrop.id] : undefined}
+        analog={shownCrop && analogs.length ? analogOdds(timeline[shownCrop.id], cell.seasons, analogs) : null}
+        need={shownCrop ? needs[shownCrop.id] : undefined} waterings={waterings} hitRate={hitRate}
+        whatIfDesc={whatIfDesc} lang={lang} today={today} />
+
+      <YearChart cell={cell} crops={crops} timeline={timeline} analogs={analogs} shown={shown} recId={rec.cropId}
+        open={open} onOpen={setOpen} lang={lang} />
+
+      {open && (
+        <Drawer cell={cell} crop={open.crop} season={open.season} sow={sow} soil={soil} position={position}
+          whatIf={whatIf} waterings={waterings} lang={lang} onClose={() => setOpen(null)} />
+      )}
 
       <CheckCard current={current} analogs={analogs} imerg={imerg} smap={smap} check={check} lang={lang} />
 
-      <section className="card timeline-card">
+      <footer className="sources" title={T('field.cellNote')}>
+        <strong>{T('sources.title')}:</strong> {Object.values(cell.sources).join(' · ')}
+        {current && typeof current === 'object' && <> · {T('sources.current')}</>}
+        <br />{T('sources.method')}
+      </footer>
+    </section>
+  );
+
+  /** Kept inside Results only for `name`; see the components below for the rest. */
+  function YearChart({ timeline, shown, recId, open, onOpen }: {
+    cell: CellData; crops: Crop[]; timeline: Record<string, Outcome[]>; analogs: Analog[]; shown: string; recId: string | null;
+    open: { crop: Crop; season: SeasonData } | null; onOpen: (o: { crop: Crop; season: SeasonData }) => void; lang: Lang;
+  }) {
+    const [all, setAll] = useState(false);
+    const minor = (c: Crop) => c.id !== shown && c.id !== recId;
+    return (
+      <section className={`card timeline-card${all ? ' show-all' : ''}`} aria-labelledby="timeline-title">
         <div className="card-heading">
           <div>
-            <h3>{T('timeline.title')}</h3>
+            <h3 id="timeline-title">{T('timeline.title')}</h3>
             <p>{T('timeline.hint')}</p>
           </div>
         </div>
@@ -126,14 +161,15 @@ export function Results({ cell, lang, current, today = new Date(), initial = {},
             </thead>
             <tbody>
               {crops.map((crop) => (
-                <tr key={crop.id} data-testid="timeline-row">
+                <tr key={crop.id} data-testid="timeline-row"
+                  className={crop.id === shown ? 'is-picked' : minor(crop) ? 'minor' : undefined}>
                   <th scope="row">{name(crop)}</th>
                   {timeline[crop.id].map((o, i) => {
                     const isOpen = open?.crop.id === crop.id && open.season.year === cell.seasons[i].year;
                     return (
                       <td key={cell.seasons[i].year}>
                         <button className={`cell${isOpen ? ' is-open' : ''}`} aria-pressed={isOpen}
-                          onClick={() => setOpen({ crop, season: cell.seasons[i] })}
+                          onClick={() => onOpen({ crop, season: cell.seasons[i] })}
                           aria-label={`${formatSeason(cell.seasons[i].year, lang)}: ${T(`outcome.${o.kind}`)}`}
                           title={`${formatSeason(cell.seasons[i].year, lang)}: ${T(`outcome.${o.kind}`)}`}>
                           <span className={`mark ${o.kind}`} aria-hidden="true" />
@@ -146,20 +182,13 @@ export function Results({ cell, lang, current, today = new Date(), initial = {},
             </tbody>
           </table>
         </div>
+        {/* On a phone ten rows bury the answer; show the picked and recommended crop first. CSS hides this on wide screens. */}
+        <button className="button secondary small show-all-toggle" aria-expanded={all} onClick={() => setAll(!all)}>
+          {all ? T('timeline.fewer') : T('timeline.all')}
+        </button>
       </section>
-
-      {open && (
-        <Drawer cell={cell} crop={open.crop} season={open.season} sow={sow} soil={soil} position={position}
-          whatIf={whatIf} waterings={waterings} lang={lang} onClose={() => setOpen(null)} />
-      )}
-
-      <footer className="sources" title={T('field.cellNote')}>
-        <strong>{T('sources.title')}:</strong> {Object.values(cell.sources).join(' · ')}
-        {current && typeof current === 'object' && <> · {T('sources.current')}</>}
-        <br />{T('sources.method')}
-      </footer>
-    </section>
-  );
+    );
+  }
 }
 
 function AnalogLine({ current, analogs, lang }: { current?: CurrentState; analogs: Analog[]; lang: Lang }) {
@@ -219,82 +248,168 @@ function SatelliteRain({ current, imerg, lang }: { current?: CurrentState; imerg
 }
 
 // Thai has no spaces, and a browser may break a crop name it does not know ("ปอเทือ|ง"); keep the name whole.
-const SLOT = ' ';
+const SLOT = '\u0000';
 const keepWhole = (text: string, name: string) =>
   text.split(SLOT).flatMap((part, i) => (i ? [<span key={i} className="nobr">{name}</span>, part] : [part]));
 
-/** One-sentence answer: the best crop here, its odds and the date to plant by. */
-function Summary({ strategies, crops, windows, lang, today, whatIfDesc, needs, waterings }: {
-  strategies: Strategy[]; crops: Crop[]; windows: Record<string, SowingWindow>; lang: Lang; today: Date;
-  whatIfDesc: string | null; needs: Record<string, number | null>; waterings: number;
+const cropName = (c: Crop, lang: Lang) => (lang === 'th' ? c.nameTh : c.nameEn);
+
+/** One-sentence answer: the best-earning safe crop, or plainly that no crop to sell is safe. */
+function Summary({ rec, crops, oddsOf, incomes, window: w, lang, today, whatIfDesc, needs, waterings }: {
+  rec: Recommendation; crops: Crop[]; oddsOf: Record<string, OddsResult>; incomes: Record<string, IncomeEstimate | null>;
+  window?: SowingWindow; lang: Lang; today: Date; whatIfDesc: string | null; needs: Record<string, number | null>; waterings: number;
 }) {
   const T: Tr = (key, vars) => t(lang, key, vars);
-  const share = (s: Strategy) => (s.odds && s.odds.total ? s.odds.good / s.odds.total : -1);
-  const best = strategies.filter((s) => s.cropId && share(s) >= 0).sort((a, b) => share(b) - share(a))[0];
-  if (!best || !best.odds) return null;
-  const crop = crops.find((c) => c.id === best.cropId)!;
-  const name = lang === 'th' ? crop.nameTh : crop.nameEn;
-  const level = tone(best.odds);
-  const vars = { crop: name, good: best.odds.good, total: best.odds.total };
-  const w = windows[crop.id];
-  const left = w?.latest ? daysLeft(w.latest, today) : null;
-  // When nothing is safe on leftover moisture alone, say what the cheapest fix with water would be.
+  if (rec.reason === 'noData') return null;
+  const note = whatIfDesc && <p className="summary-note">{T('summary.whatIf')}</p>;
+  if (rec.reason === 'safeIncome' && rec.cropId) {
+    const crop = crops.find((c) => c.id === rec.cropId)!;
+    const o = oddsOf[crop.id];
+    const left = w?.latest ? daysLeft(w.latest, today) : null;
+    return (
+      <div className="card summary tone-good" data-testid="summary">
+        <p className="summary-kicker">{T('summary.kicker')}</p>
+        <p className="summary-main">
+          {keepWhole(T('summary.best', { crop: SLOT, avg: baht(incomes[crop.id]?.average ?? 0, lang), good: o.good, total: o.total }), cropName(crop, lang))}
+        </p>
+        {w?.latest && (
+          <p className="summary-plant">
+            {T('card.window', { date: formatMonthDay(w.latest, lang) })}
+            {left != null && <> · {daysText(left, T)}</>}
+          </p>
+        )}
+        <p className="summary-safe">{T('summary.safeMeans')}</p>
+        {note}
+      </div>
+    );
+  }
+  // No crop to sell is safe: name the closest and, before any watering is set, the cheapest fix with water.
+  const closest = crops.find((c) => c.id === rec.closest);
+  const o = closest ? oddsOf[closest.id] : null;
   const thirsty = crops
+    .filter((c) => c.market)
     .map((c) => ({ c, n: needs[c.id] }))
     .filter((x): x is { c: Crop; n: number } => x.n != null && x.n > 0)
     .sort((a, b) => a.n - b.n)[0];
-  // Risky but water would fix it: say so, rather than "leave it bare" followed by a fix (the old contradiction).
-  const waterHelps = waterings === 0 && !!thirsty;
-  const mainKey: Key = level !== 'low' ? 'summary.best' : waterHelps ? 'summary.riskyDry' : 'summary.risky';
-  const main = keepWhole(T(mainKey, { ...vars, crop: SLOT }), name);
   return (
-    <div className={`card summary tone-${level}`} data-testid="summary">
+    <div className={`card summary tone-${o && tone(o) === 'mid' ? 'mid' : 'low'}`} data-testid="summary">
       <p className="summary-kicker">{T('summary.kicker')}</p>
-      <p className="summary-main">{main}</p>
-      {level !== 'low' && w?.latest && (
-        <p className="summary-plant">
-          {T('card.window', { date: formatMonthDay(w.latest, lang) })}
-          {left != null && <> · {left > 1 ? T('card.daysLeft', { n: left }) : left === 1 ? T('card.dayLeft') : left === 0 ? T('card.lastDay') : T('card.late')}</>}
-        </p>
-      )}
-      {level !== 'good' && waterHelps && thirsty && (
+      <p className="summary-main">
+        {closest && o && o.good > 0
+          ? keepWhole(T(waterings ? 'summary.noneSafeWatered' : 'summary.noneSafe', { crop: SLOT, good: o.good, total: o.total }), cropName(closest, lang))
+          : o ? T(waterings ? 'summary.noneSurvivedWatered' : 'summary.noneSurvived', { total: o.total })
+          : T('summary.noPriced')}
+      </p>
+      {waterings === 0 && thirsty && (
         <p className="summary-plant" data-testid="summary-water">
-          {keepWhole(T('summary.water', { crop: SLOT, n: thirsty.n, mm: thirsty.n * IRRIGATION_MM }), lang === 'th' ? thirsty.c.nameTh : thirsty.c.nameEn)}
+          {keepWhole(T('summary.water', { crop: SLOT, n: thirsty.n, mm: thirsty.n * IRRIGATION_MM }), cropName(thirsty.c, lang))}
         </p>
       )}
-      {whatIfDesc && <p className="summary-note">{T('summary.whatIf')}</p>}
+      <p className="summary-safe">{T('summary.safeMeans')}</p>
+      {note}
     </div>
   );
 }
 
-function Card({ s, crops, lang, today, window, analog, whatIfDesc, need, waterings, income, hitRate }: {
-  s: Strategy; crops: Crop[]; lang: Lang; today: Date; window?: SowingWindow; analog: OddsResult | null;
-  whatIfDesc: string | null; need?: number | null; waterings: number; income?: IncomeEstimate | null;
-  hitRate: number | null;
+const daysText = (left: number, T: Tr) =>
+  left > 1 ? T('card.daysLeft', { n: left }) : left === 1 ? T('card.dayLeft') : left === 0 ? T('card.lastDay') : T('card.late');
+
+/** What the farmer will plant: every crop, grouped, each with its income and years survived; the pick drives the detail. */
+function CropPicker({ crops, shown, rec, oddsOf, incomes, lang, onPick }: {
+  crops: Crop[]; shown: string; rec: Recommendation; oddsOf: Record<string, OddsResult>;
+  incomes: Record<string, IncomeEstimate | null>; lang: Lang; onPick: (id: string) => void;
 }) {
   const T: Tr = (key, vars) => t(lang, key, vars);
-  const crop = crops.find((c) => c.id === s.cropId);
-  const alt = crops.find((c) => c.id === s.altCropId);
-  const name = (c: Crop) => (lang === 'th' ? c.nameTh : c.nameEn);
-  const { level, why } = badge({ seasons: s.odds?.total ?? 0, analog, hitRate });
+  const id = useId();
+  const money = (c: Crop) => {
+    if (c.group === 'manure') return T('pick.noIncome');
+    if (!c.market) return T('pick.noPrice');
+    const inc = incomes[c.id];
+    return inc ? T('pick.income', { avg: baht(inc.average, lang) }) : T('card.noData');
+  };
+  const years = (c: Crop) => {
+    const o = oddsOf[c.id];
+    return o && o.total ? T('pick.odds', { good: o.good, total: o.total }) : T('card.noData');
+  };
+  const chip = (value: string, label: string, meta: string, isRec = false, cls = '') => (
+    <label key={value} className={`chip crop-chip${isRec ? ' is-rec' : ''}${cls}`}>
+      <input type="radio" name={`${id}-crop`} value={value} checked={shown === value} onChange={() => onPick(value)} />
+      <span>
+        <strong className="nobr">{label}</strong>
+        {isRec && <em className="rec-tag">{T('pick.rec')}</em>}
+        <small className="chip-meta">{meta}</small>
+      </span>
+    </label>
+  );
+  return (
+    <fieldset className="card picker" role="radiogroup" aria-labelledby={`${id}-title`}>
+      <legend id={`${id}-title`} className="picker-title">{T('pick.title')}</legend>
+      <p className="choices-hint">{T('pick.hint')}</p>
+      {GROUPS.map((g) => {
+        const items = crops.filter((c) => c.group === g);
+        if (!items.length && g !== 'manure') return null;
+        return (
+          <div key={g} className="pick-group">
+            <p className="pick-group-title">{T(`group.${g}`)}</p>
+            <div className="chips">
+              {items.map((c) => {
+                const tn = tone(oddsOf[c.id] ?? null);
+                return chip(c.id, cropName(c, lang), `${money(c)} · ${years(c)}`, c.id === rec.cropId, ` tone-${tn}`);
+              })}
+              {g === 'manure' && chip(FALLOW, T('fallow.name'), `${T('pick.noIncome')} · ${T('pick.noRisk')}`)}
+            </div>
+          </div>
+        );
+      })}
+    </fieldset>
+  );
+}
+
+/** Everything about the picked crop, income first; `crop` null is "leave the field bare". */
+function CropDetail({ crop, o, isRec, income, window, analog, need, waterings, hitRate, whatIfDesc, lang, today }: {
+  crop: Crop | null; o: OddsResult | null; isRec: boolean; income: IncomeEstimate | null; window?: SowingWindow;
+  analog: OddsResult | null; need?: number | null; waterings: number; hitRate: number | null; whatIfDesc: string | null;
+  lang: Lang; today: Date;
+}) {
+  const T: Tr = (key, vars) => t(lang, key, vars);
+  if (!crop) {
+    return (
+      <article className="card detail tone-none" data-testid="detail" aria-labelledby="detail-title">
+        <h3 id="detail-title" className="detail-name">{T('fallow.name')}</h3>
+        <p className="income-main is-none">{T('pick.noIncome')}</p>
+        <p className="body">{T('fallow.body')}</p>
+        <p className="effect effect-bare"><IconLeaf />{T('effect.bare')}</p>
+      </article>
+    );
+  }
+  const has = !!o && o.total > 0;
+  const { level, why } = badge({ seasons: o?.total ?? 0, analog, hitRate });
   const whyText = why.map((w) => T(`badge.why.${w}`));
   return (
-    <article className={`card option option-${s.id} tone-${tone(s.odds)}`} data-testid="card">
-      <h3 className="option-top"><span className="option-tag">{s.id}</span>{T(`card.${s.id}`)}</h3>
-      <p className="crop">{crop ? name(crop) : T('card.A.crop')}</p>
-      {!s.odds && <p className="body">{T('card.A.body')}</p>}
-      {s.odds && s.odds.total === 0 && <p className="odds">{T('card.noData')}</p>}
-      {s.odds && s.odds.total > 0 && (
+    <article className={`card detail tone-${tone(o)}`} data-testid="detail" aria-labelledby="detail-title">
+      <h3 id="detail-title" className="detail-name">
+        <span className="nobr">{cropName(crop, lang)}</span>
+        {isRec && <em className="rec-tag">{T('pick.rec')}</em>}
+      </h3>
+      <p className={`income-main${income && crop.market ? '' : ' is-none'}`} data-testid="income">
+        {crop.group === 'manure' ? T('income.none')
+          : !crop.market ? T('income.noPrice')
+          : income ? <>{T('income.est', { avg: baht(income.average, lang), good: baht(income.goodYear, lang) })}
+              <small> · {T('income.src', { date: monthYear(crop.market.asOf, lang) })}</small></>
+          : T('card.noData')}
+      </p>
+      {!has && <p className="odds">{T('card.noData')}</p>}
+      {has && (
         <>
-          <p className="odds">{T('card.odds', { good: s.odds.good, total: s.odds.total })}</p>
-          <SeasonMarks odds={s.odds} lang={lang} />
+          <p className="odds">{T('card.odds', { good: o!.good, total: o!.total })}</p>
+          <SeasonMarks odds={o!} lang={lang} />
           {analog && analog.total > 0 && (
             <p className="analog-odds" data-testid="analog-odds">{T('card.analog', { good: analog.good, total: analog.total })}</p>
           )}
           {whatIfDesc && <p className="whatif-note">{T('card.whatIf', { desc: whatIfDesc })}</p>}
         </>
       )}
-      {s.odds && s.odds.total > 0 && need !== undefined && (
+      {has && need !== undefined && (
         <p className="water-need" data-testid="water-need">
           {waterings > 0 && <>{T('card.withWater', { n: waterings })} · </>}
           {need === null ? T('card.needMany', { n: WATERINGS_SEARCH_MAX })
@@ -302,39 +417,28 @@ function Card({ s, crops, lang, today, window, analog, whatIfDesc, need, waterin
             : T('card.need', { n: need, mm: need * IRRIGATION_MM })}
         </p>
       )}
-      {s.odds && s.odds.total > 0 && crop && (
-        <p className="income" data-testid="income">
-          {income && crop.market
-            ? <>{T('income.est', { avg: baht(income.average, lang), good: baht(income.goodYear, lang) })}
-                <small> · {T('income.src', { date: monthYear(crop.market.asOf, lang) })}</small></>
-            : T('income.none')}
+      {window && <WindowInfo w={window} lang={lang} today={today} />}
+      <p className={`effect effect-${crop.soilEffect}`}><IconLeaf />{T(`effect.${crop.soilEffect}`)}</p>
+      <details className="more">
+        <summary>{T('card.more')}</summary>
+        {has && <p className="odds-detail">{T('card.detail', { poor: o!.poor, failed: o!.failed })}</p>}
+        {window && <WindowChart w={window} lang={lang} />}
+        <p className={`pill badge-${level}`} title={whyText.join('\n')}>
+          {T('card.confidence')}: {T(`badge.${level}`)}
         </p>
-      )}
-      {s.odds && window && <WindowInfo w={window} lang={lang} today={today} />}
-      {s.odds && <p className={`effect effect-${s.soilEffect}`}><IconLeaf />{T(`effect.${s.soilEffect}`)}</p>}
-      {s.odds && (
-        <details className="more">
-          <summary>{T('card.more')}</summary>
-          {s.odds.total > 0 && <p className="odds-detail">{T('card.detail', { poor: s.odds.poor, failed: s.odds.failed })}</p>}
-          {window && <WindowChart w={window} lang={lang} />}
-          {alt && <p className="alt">{T('card.alt', { name: name(alt) })}</p>}
-          <p className={`pill badge-${level}`} title={whyText.join('\n')}>
-            {T('card.confidence')}: {T(`badge.${level}`)}
-          </p>
-          {whyText.map((w) => <p key={w} className="badge-why">{w}</p>)}
-          <p className="more-h">{T('card.blind')}</p>
-          <ul>
-            <li>{T('card.blind.1')}</li><li>{T('card.blind.2')}</li><li>{T('card.blind.3')}</li><li>{T('card.blind.4')}</li>
-            {crop?.assumption && <li>{T('card.estimate')}</li>}
-          </ul>
-          <p>{T('card.ask')}</p>
-        </details>
-      )}
+        {whyText.map((w) => <p key={w} className="badge-why">{w}</p>)}
+        <p className="more-h">{T('card.blind')}</p>
+        <ul>
+          <li>{T('card.blind.1')}</li><li>{T('card.blind.2')}</li><li>{T('card.blind.3')}</li><li>{T('card.blind.4')}</li>
+          {crop.assumption && <li>{T('card.estimate')}</li>}
+        </ul>
+        <p>{T('card.ask')}</p>
+      </details>
     </article>
   );
 }
 
-/** One mark per past season, survived first, so "7 of 25" can be counted by eye (an icon array). */
+/** One mark per past year, survived first, so "7 of 25" can be counted by eye (an icon array). */
 function SeasonMarks({ odds, lang }: { odds: OddsResult; lang: Lang }) {
   const marks = [
     ...Array<Outcome['kind']>(odds.good).fill('good'),
@@ -350,7 +454,7 @@ function SeasonMarks({ odds, lang }: { odds: OddsResult; lang: Lang }) {
   );
 }
 
-/** The NASA checks in one place, each with a plain headline: how far the answer can be trusted. */
+/** The NASA checks in one place, each with a plain headline: the data behind the answer. */
 function CheckCard({ current, analogs, imerg, smap, check, lang }: {
   current?: CurrentState; analogs: Analog[]; imerg?: ImergCell | null; smap?: SmapCell | null; check: SelfCheck | null; lang: Lang;
 }) {
@@ -377,11 +481,7 @@ function WindowInfo({ w, lang, today }: { w: SowingWindow; lang: Lang; today: Da
       {w.latest ? (
         <p className="window-date">
           {T('card.window', { date: formatMonthDay(w.latest, lang) })}
-          {left != null && (
-            <span className={left < 0 ? 'late' : 'left'}>
-              {' · '}{left > 1 ? T('card.daysLeft', { n: left }) : left === 1 ? T('card.dayLeft') : left === 0 ? T('card.lastDay') : T('card.late')}
-            </span>
-          )}
+          {left != null && <span className={left < 0 ? 'late' : 'left'}>{' · '}{daysText(left, T)}</span>}
         </p>
       ) : <p className="window-date late">{T('card.noWindow')}</p>}
     </div>

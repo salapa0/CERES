@@ -1,5 +1,5 @@
 import { extraterrestrialRadiation, hargreavesEt0 } from './et0';
-import { buildStrategies, dayIndexToDate, kcOnDay, loadCrops, odds, replay, runTimeline, seasonLength, sowIndex, waterNeeded } from './index';
+import { dayIndexToDate, kcOnDay, loadCrops, odds, replay, runTimeline, seasonLength, sowIndex, waterNeeded } from './index';
 import type { CellData, Crop, Outcome, SeasonData } from './types';
 
 const crop: Crop = {
@@ -98,16 +98,11 @@ describe('odds and strategies', () => {
     expect(crops.map((c) => c.id).sort()).toEqual(['maize', 'mungbean', 'peanut', 'sunnhemp']);
     expect(crops.every((c) => c.sources.length > 0)).toBe(true);
   });
-  test('timeline has one outcome per season per crop; strategies are A, B, C', () => {
+  test('timeline has one outcome per season per crop', () => {
     const c = cell([season(2015, 5, 0.8), season(2016, 5, 0.8)]);
     const tl = runTimeline(c, loadCrops(), '12-01', 'loamySand', 'upland');
-    expect(Object.keys(tl)).toHaveLength(4);
+    expect(Object.keys(tl)).toHaveLength(loadCrops().length);
     expect(tl.mungbean).toHaveLength(2);
-    const st = buildStrategies(tl, loadCrops());
-    expect(st.map((s) => s.id)).toEqual(['A', 'B', 'C']);
-    expect(st[0].cropId).toBeNull();
-    expect(st[1].cropId).toBe('mungbean'); // tie goes to mung bean
-    expect(st[1].altCropId).toBe('peanut');
   });
 });
 

@@ -85,10 +85,3 @@ export interface ReplayArgs {
 export interface OddsResult { good: number; poor: number; failed: number; nodata: number; total: number }
 export type Timeline = Record<string, Outcome[]>; // cropId -> one Outcome per season
 
-export interface Strategy {
-  id: 'A' | 'B' | 'C';
-  cropId: string | null;
-  altCropId: string | null;
-  odds: OddsResult | null;
-  soilEffect: SoilEffect;
-}

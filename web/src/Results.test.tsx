@@ -1,6 +1,6 @@
 import { fireEvent, render, screen, within } from '@testing-library/react';
 import { vi } from 'vitest';
-import type { CellData, Num, SeasonData } from './engine';
+import { loadCrops, type CellData, type Num, type SeasonData } from './engine';
 import { Results } from './Results';
 
 function season(year: number, rain: number, wetness: Num): SeasonData {
@@ -13,17 +13,18 @@ const cell = (seasons: SeasonData[]): CellData => ({
   wetnessScale: { p05: 0.3, p95: 0.8 }, seasons,
 });
 
-test('shows three strategy cards and four crop rows with Buddhist-era seasons', () => {
+test('a choice per crop plus "leave it bare", and a year row per crop with Buddhist-era years', () => {
   render(<Results cell={cell([season(2015, 5, 0.8), season(2016, 5, 0.8)])} lang="th" />);
-  expect(screen.getAllByTestId('card')).toHaveLength(3);
-  expect(screen.getAllByTestId('timeline-row')).toHaveLength(4);
+  const picker = screen.getByRole('radiogroup', { name: 'คุณจะปลูกอะไร' });
+  expect(within(picker).getAllByRole('radio')).toHaveLength(loadCrops().length + 1);
+  expect(screen.getAllByTestId('timeline-row')).toHaveLength(loadCrops().length);
   expect(screen.getByTitle('2558/59')).toBeInTheDocument();
   expect(screen.getByText(/NASA POWER PRECTOTCORR/)).toBeInTheDocument();
 });
 
 test('English mode uses English titles and CE seasons', () => {
   render(<Results cell={cell([season(2015, 5, 0.8)])} lang="en" />);
-  expect(screen.getByText(/Keep as today/)).toBeInTheDocument();
+  expect(screen.getByRole('radio', { name: /Leave the field bare/ })).toBeInTheDocument();
   expect(screen.getByTitle('2015/16')).toBeInTheDocument();
 });
 
@@ -36,17 +37,16 @@ test('tapping a failed season opens a drawer with a real calendar death date', (
 
 test('a cell with no usable seasons says so and never shows 0 of 0', () => {
   render(<Results cell={cell([season(2015, 5, null)])} lang="th" />);
-  expect(screen.getAllByText('ข้อมูลไม่พอ').length).toBeGreaterThan(0);
+  expect(screen.getAllByText(/ข้อมูลไม่พอ/).length).toBeGreaterThan(0);
   expect(screen.queryByText(/จาก 0/)).toBeNull();
 });
 
-test('cards show the latest safe sowing date and the days left in the season under way', () => {
+test('the picked crop shows the latest safe sowing date and the days left in the season under way', () => {
   render(<Results cell={cell([season(2015, 5, 0.8), season(2016, 5, 0.8)])} lang="th" today={new Date(2026, 10, 14)} />);
-  const windows = screen.getAllByTestId('window');
-  expect(windows).toHaveLength(2); // cards B and C only
+  const w = within(screen.getByTestId('detail')).getByTestId('window');
   // Rain every day: every date in the sweep is safe, so the latest one (31 Jan) is the deadline.
-  expect(windows[0]).toHaveTextContent('ปลูกภายใน 31 ม.ค.');
-  expect(windows[0]).toHaveTextContent('เหลืออีก 78 วัน');
+  expect(w).toHaveTextContent('ปลูกภายใน 31 ม.ค.');
+  expect(w).toHaveTextContent('เหลืออีก 78 วัน');
 });
 
 test('the weather to test is one of the settings, shown in the summary line, and can be reset', () => {
@@ -69,14 +69,18 @@ test('a loaded current season names its look-alike years and adds "years like th
   const now = { ...past[1], year: 2026, start: '2026-08-01', asOf: '2026-11-11' };
   render(<Results cell={cell(past)} lang="th" current={now} />);
   expect(screen.getByTestId('analog-line')).toHaveTextContent(/คล้ายปี 2558/);
-  expect(screen.getAllByTestId('analog-odds')).toHaveLength(2);
+  expect(screen.getAllByTestId('analog-odds')).toHaveLength(1); // the picked crop's detail
 });
 
-test('the summary names the best crop and its odds, and calls a dry place risky', () => {
+test('the summary names the best-earning safe crop with its income and years, and says when none is safe', () => {
   const { rerender } = render(<Results cell={cell([season(2015, 5, 0.8), season(2016, 5, 0.8)])} lang="en" />);
-  expect(screen.getByTestId('summary')).toHaveTextContent(/is the best bet here: it survived 2 of 2/);
+  expect(screen.getByTestId('summary'))
+    .toHaveTextContent(/earns the most of the safe crops: about ฿[\d,]+ per rai, and it survived 2 of 2 past years/);
+  expect(screen.getByTestId('summary')).toHaveTextContent('Safe = survived at least 4 years in 5');
   rerender(<Results cell={cell([season(2015, 0, 0.3), season(2016, 0, 0.3)])} lang="en" />);
-  expect(screen.getByTestId('summary')).toHaveTextContent(/Risky here/);
+  // Nothing to sell ever survived: say that, rather than "the best one survived 0 of 2".
+  expect(screen.getByTestId('summary')).toHaveTextContent(/Without water, no crop to sell survived in any of the past 2 years/);
+  expect(screen.getByTestId('summary')).not.toHaveTextContent(/0 of 2/);
 });
 
 test('a failed live fetch says so instead of showing look-alike years', () => {
@@ -84,9 +88,9 @@ test('a failed live fetch says so instead of showing look-alike years', () => {
   expect(screen.getByText(/Could not fetch this season/)).toBeInTheDocument();
 });
 
-test('choosing waterings improves a dry field and each crop card says how much water it needs', () => {
+test('choosing waterings improves a dry field and the picked crop says how much water it needs', () => {
   render(<Results cell={cell([season(2015, 0, 0.45), season(2016, 0, 0.45)])} lang="en" />);
-  expect(screen.getAllByTestId('water-need')).toHaveLength(2);
+  expect(screen.getAllByTestId('water-need')).toHaveLength(1);
   expect(screen.getByTestId('summary-water')).toHaveTextContent(/If you can water about \d times/);
   const failedBefore = screen.getAllByRole('button', { name: /Failed/ }).length;
   fireEvent.click(screen.getByRole('button', { name: 'Change' }));
@@ -126,11 +130,38 @@ it('falls back to the older copy command where the clipboard is blocked', async 
   expect(exec).toHaveBeenCalledWith('copy');
 });
 
-it('shows an estimated income per rai on cash-crop cards and no cash for sunn hemp', () => {
+it('every crop choice shows its income or plainly says it has none, and the detail leads with income', () => {
   render(<Results cell={cell([season(2015, 5, 0.8), season(2016, 5, 0.8)])} lang="en" />);
-  const lines = screen.getAllByTestId('income').map((e) => e.textContent ?? '');
-  expect(lines).toHaveLength(2);
-  expect(lines.some((l) => /Estimated income ≈ ฿[\d,]+ per rai on average/.test(l) || /No cash income/.test(l))).toBe(true);
+  expect(screen.getByRole('radio', { name: /Sunn hemp.*No income/ })).toBeInTheDocument();
+  expect(screen.getByRole('radio', { name: /Peanut.*≈ ฿[\d,]+\/rai/ })).toBeInTheDocument();
+  const detail = screen.getByTestId('detail');
+  expect(detail.querySelector('h3 + p')).toBe(screen.getByTestId('income'));
+  expect(screen.getByTestId('income')).toHaveTextContent(/Estimated income ≈ ฿[\d,]+ per rai on average/);
+  fireEvent.click(screen.getByRole('radio', { name: /Sunn hemp/ }));
+  expect(screen.getByTestId('income')).toHaveTextContent(/No cash income/);
+});
+
+test('the recommended crop is picked first; another pick shows its detail and stays when settings change', () => {
+  render(<Results cell={cell([season(2015, 5, 0.8), season(2016, 5, 0.8)])} lang="en" />);
+  expect(screen.getByRole('radio', { checked: true }).closest('label')).toHaveTextContent('Recommended');
+  fireEvent.click(screen.getByRole('radio', { name: /Mung bean/ }));
+  expect(screen.getByTestId('detail')).toHaveTextContent(/^Mung bean/);
+  const picked = screen.getAllByTestId('timeline-row').filter((r) => r.classList.contains('is-picked'));
+  expect(picked).toHaveLength(1);
+  expect(picked[0]).toHaveTextContent(/^Mung bean/);
+  fireEvent.click(screen.getByRole('button', { name: 'Change' }));
+  fireEvent.click(screen.getByRole('radio', { name: 'Upland' }));
+  expect(screen.getByRole('radio', { name: /Mung bean/ })).toBeChecked();
+});
+
+test('on a phone the year chart can hide crops that are neither picked nor recommended', () => {
+  render(<Results cell={cell([season(2015, 5, 0.8), season(2016, 5, 0.8)])} lang="en" />);
+  const rows = screen.getAllByTestId('timeline-row');
+  expect(rows.filter((r) => r.classList.contains('minor'))).toHaveLength(rows.length - 1); // picked = recommended
+  const toggle = screen.getByRole('button', { name: 'Show all crops' });
+  fireEvent.click(toggle);
+  expect(toggle).toHaveAttribute('aria-expanded', 'true');
+  expect(toggle.closest('section')).toHaveClass('show-all');
 });
 
 test('satellite rain from IMERG is shown next to the model rain over the same days', () => {
@@ -156,14 +187,14 @@ test('the GLDAS self-check line and a High badge when the model agrees and look-
   render(<Results cell={cell(past)} lang="en" current={now} />);
   // Rain every day: neither the model nor GLDAS dries during the crop, so every season agrees.
   expect(screen.getByTestId('selfcheck-line')).toHaveTextContent(/GLDAS.*16 of 16 years/);
-  expect(screen.getAllByText('Confidence: High')).toHaveLength(2);
+  expect(screen.getAllByText('Confidence: High')).toHaveLength(1);
 });
 
 test('without GLDAS data there is no self-check line and the badge stays at Medium', () => {
   const past = Array.from({ length: 16 }, (_, k) => season(2001 + k, 5, 0.8));
   render(<Results cell={cell(past)} lang="en" />);
   expect(screen.queryByTestId('selfcheck-line')).toBeNull();
-  expect(screen.getAllByText('Confidence: Medium')).toHaveLength(2);
+  expect(screen.getAllByText('Confidence: Medium')).toHaveLength(1);
   expect(screen.getAllByText('Not yet checked against satellite data').length).toBeGreaterThan(0);
 });
 
@@ -209,15 +240,15 @@ test('the settings the answer depends on come before the answer, as a summary th
 test('a field that is risky without water does not also say to leave it bare when water would fix it', () => {
   render(<Results cell={cell([season(2015, 0, 0.45), season(2016, 0, 0.45)])} lang="en" />);
   const verdict = screen.getByTestId('summary');
-  expect(verdict).toHaveTextContent(/Risky here without water/);
+  expect(verdict).toHaveTextContent(/Without water, no crop to sell (is safe here|survived)/);
   expect(verdict).toHaveTextContent(/If you can water about \d times/);
-  expect(verdict).not.toHaveTextContent(/bare is the safe choice/);
+  expect(verdict).not.toHaveTextContent(/bare/);
 });
 
-test('each crop card shows one countable mark per past season, survived first', () => {
+test('the picked crop shows one countable mark per past year, survived first', () => {
   render(<Results cell={cell([season(2015, 5, 0.8), season(2016, 5, 0.8), season(2017, 0, 0.3)])} lang="en" />);
   const marks = screen.getAllByTestId('marks');
-  expect(marks).toHaveLength(2);
+  expect(marks).toHaveLength(1);
   const kinds = [...marks[0].children].map((m) => m.className.replace('mark ', ''));
   expect(kinds).toHaveLength(3);
   expect(kinds).toEqual([...kinds].sort((a, b) => ['good', 'poor', 'failed'].indexOf(a) - ['good', 'poor', 'failed'].indexOf(b)));
@@ -241,9 +272,7 @@ test('the NASA checks sit together under one plain heading, after the options', 
   const check = screen.getByRole('region', { name: 'Reference data' });
   expect(check).toContainElement(screen.getByTestId('smap-line'));
   expect(check).toHaveTextContent(/Could not fetch this season/);
-  const cards = screen.getAllByTestId('card');
-  const lastCard = cards[cards.length - 1];
-  expect(lastCard.compareDocumentPosition(check) & Node.DOCUMENT_POSITION_FOLLOWING).toBeTruthy();
+  expect(screen.getByTestId('detail').compareDocumentPosition(check) & Node.DOCUMENT_POSITION_FOLLOWING).toBeTruthy();
 });
 
 test('timeline years are buttons named by season and outcome, drawn with the same marks as the cards', () => {

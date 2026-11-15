@@ -1,6 +1,6 @@
 import { useEffect, useRef, useState } from 'react';
 import { About } from './About';
-import { cellForPoint, fetchCurrentSeason, loadCell, loadGrid } from './data';
+import { cellForPoint, fetchCurrentSeason, loadCell, loadGrid, loadImerg, type ImergCell } from './data';
 import type { CellData, Grid } from './engine';
 import { t, type Key, type Lang } from './i18n';
 import { BrandMark, FieldsArt, IconLocate } from './icons';
@@ -19,6 +19,7 @@ export default function App() {
   const [cell, setCell] = useState<CellData | null>(null);
   const [current, setCurrent] = useState<CurrentState | undefined>();
   const [status, setStatus] = useState<Status>('idle');
+  const [imerg, setImerg] = useState<ImergCell | null>(null);
   const [locate, setLocate] = useState<Locate>('idle');
   // Kept here, not in Results, so settings survive picking another field and can go into the link.
   const [settings, setSettings] = useState<Partial<Settings>>({});
@@ -71,6 +72,8 @@ export default function App() {
     if (!target) return setStatus('outside');
     setStatus('loading');
     setCurrent('loading');
+    setImerg(null);
+    loadImerg(target.id).then((m) => latest() && setImerg(m));
     fetchCurrentSeason(target)
       .then((s) => latest() && setCurrent(s))
       .catch(() => latest() && setCurrent('error'));
@@ -149,7 +152,7 @@ export default function App() {
             </p>
           )}
           <div ref={resultsRef} className="results-anchor">
-            {cell && <Results cell={cell} lang={lang} current={current} initial={settings} onSettings={setSettings} />}
+            {cell && <Results cell={cell} lang={lang} current={current} initial={settings} onSettings={setSettings} imerg={imerg} />}
           </div>
         </div>
       </main>

@@ -118,3 +118,19 @@ async function fetchLiveCell(cell: GridCell): Promise<CellData> {
     seasons,
   };
 }
+
+/** IMERG satellite rain for the current season, built daily by pipeline/build_imerg.py (F14). */
+export interface ImergFile { product: string; start: string; asOf: string; generated: string; cells: Record<string, (number | null)[]> }
+export interface ImergCell { start: string; asOf: string; rain: (number | null)[] }
+
+export function pickImerg(file: ImergFile, id: string): ImergCell | null {
+  const rain = file.cells[id];
+  return rain ? { start: file.start, asOf: file.asOf, rain } : null;
+}
+
+let imergFile: Promise<ImergFile | null> | null = null;
+/** Null when the file is missing (pipeline not run, NASA down): the app then simply hides the satellite line. */
+export function loadImerg(id: string): Promise<ImergCell | null> {
+  imergFile ??= fetch(dataUrl('imerg/current.json')).then((r) => (r.ok ? r.json() : null)).catch(() => null);
+  return imergFile.then((f) => (f ? pickImerg(f, id) : null));
+}

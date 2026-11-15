@@ -123,3 +123,17 @@ it('shows an estimated income per rai on cash-crop cards and no cash for sunn he
   expect(lines).toHaveLength(2);
   expect(lines.some((l) => /Estimated income ≈ ฿[\d,]+ per rai on average/.test(l) || /No cash income/.test(l))).toBe(true);
 });
+
+test('satellite rain from IMERG is shown next to the model rain over the same days', () => {
+  const past = [season(2014, 2, 0.5), season(2015, 5, 0.8), season(2016, 0, 0.3)];
+  const now = { ...past[1], year: 2026, start: '2026-08-01', asOf: '2026-08-03', rain: [1, 2, 3, 4, 5] };
+  const imerg = { start: '2026-08-01', asOf: '2026-08-04', rain: [10, null, 20, 5] };
+  render(<Results cell={cell(past)} lang="en" current={now} imerg={imerg} />);
+  // Same days for both: 1–3 Aug (POWER stops there). IMERG 10 + 20 = 30 (one day missing), POWER 1 + 2 + 3 = 6.
+  expect(screen.getByTestId('imerg-line')).toHaveTextContent(/satellite.*30 mm.*6 mm/i);
+});
+
+test('no satellite line without IMERG data', () => {
+  render(<Results cell={cell([season(2015, 5, 0.8)])} lang="en" />);
+  expect(screen.queryByTestId('imerg-line')).toBeNull();
+});

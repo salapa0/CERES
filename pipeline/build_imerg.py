@@ -1,0 +1,143 @@
+"""Daily NASA IMERG satellite rain for the current dry season, averaged into each app grid cell (F14).
+
+Writes web/public/data/imerg/current.json. Needs EARTHDATA_TOKEN (an Earthdata Login user token) in the
+environment; run by the deploy workflow, never by hand with a pasted token. Standard library only.
+"""
+import concurrent.futures
+import datetime as dt
+import json
+import os
+import re
+import sys
+import time
+import urllib.parse
+import urllib.request
+from pathlib import Path
+
+ROOT = Path(__file__).resolve().parent.parent
+GRID = ROOT / "web/public/data/grid.json"
+OUT = ROOT / "web/public/data/imerg/current.json"
+# IMERG Late daily, version 7 (0.1°): about a day behind real time. The on-premises GES DISC server is due to move
+# to Earthdata Cloud; if this URL stops working, the deploy keeps the old file out and the app hides the line.
+SERVER = "https://gpm1.gesdisc.eosdis.nasa.gov/opendap/GPM_L3/GPM_3IMERGDL.07"
+PRODUCT = "NASA GPM IMERG Late Run daily, V07 (GPM_3IMERGDL), 0.1°"
+FILL = -9000.0
+
+
+def pixel_index(lon, lat):
+    """OPeNDAP indices of the 0.1° pixel whose centre is (lon, lat); centres run from -179.95 and -89.95."""
+    return round((lon + 179.95) / 0.1), round((lat + 89.95) / 0.1)
+
+
+def parse_ascii(text):
+    """{(lon, lat): mm} from an OPeNDAP ASCII response of precipitation[time][lon][lat]; fill values dropped."""
+    lats = None
+    rain = {}
+    for line in text.splitlines():
+        head, _, rest = line.partition(", ")
+        if head == "precipitation.lat":
+            lats = [float(v) for v in rest.split(", ")]
+        m = re.search(r"precipitation\.lon=(-?[\d.]+)\]$", head)
+        if m and lats:
+            lon = float(m.group(1))
+            for lat, v in zip(lats, rest.split(", ")):
+                value = float(v)
+                if value > FILL:
+                    rain[(lon, lat)] = value
+    return rain
+
+
+def cell_means(rain, cells, half_lat, half_lon):
+    """Mean rain of the pixels whose centres fall inside each cell; None when no pixel does."""
+    out = {}
+    for c in cells:
+        vals = [v for (lon, lat), v in rain.items()
+                if abs(lat - c["lat"]) <= half_lat and abs(lon - c["lon"]) <= half_lon]
+        out[c["id"]] = sum(vals) / len(vals) if vals else None
+    return out
+
+
+def get(url, token):
+    req = urllib.request.Request(url)
+    req.add_header("Authorization", f"Bearer {token}")
+    for attempt in range(5):
+        try:
+            with urllib.request.urlopen(req, timeout=120) as r:
+                return r.read().decode("utf-8")
+        except Exception:
+            if attempt == 4:
+                raise
+            time.sleep(5 * 2 ** attempt)  # GES DISC answers 503 when pushed; back off 5, 10, 20, 40 s
+    return ""
+
+
+def month_files(year, month):
+    """{date: file name} listed for one month (the listing is public; the version letter changes over time)."""
+    with urllib.request.urlopen(f"{SERVER}/{year}/{month:02d}/", timeout=60) as r:
+        html = r.read().decode("utf-8")
+    files = {}
+    for m in re.finditer(r"(3B-DAY-L\.MS\.MRG\.3IMERG\.(\d{8})-S000000-E235959\.V07[A-Z]\.nc4)(?=[\"<])", html):
+        files[dt.datetime.strptime(m.group(2), "%Y%m%d").date()] = m.group(1)  # later letters overwrite earlier
+    return files
+
+
+def main():
+    token = os.environ.get("EARTHDATA_TOKEN")
+    if not token:
+        sys.exit("EARTHDATA_TOKEN is not set")
+    grid = json.loads(GRID.read_text(encoding="utf-8"))
+    cells = grid["cells"]
+    half_lat, half_lon = grid["cellSize"]["lat"] / 2, grid["cellSize"]["lon"] / 2
+    i0, j0 = pixel_index(min(c["lon"] for c in cells) - half_lon, min(c["lat"] for c in cells) - half_lat)
+    i1, j1 = pixel_index(max(c["lon"] for c in cells) + half_lon, max(c["lat"] for c in cells) + half_lat)
+
+    today = dt.date.today()
+    start = dt.date(today.year if today.month >= 8 else today.year - 1, 8, 1)
+    files = {}
+    y, m = start.year, start.month
+    while (y, m) <= (today.year, today.month):
+        files.update(month_files(y, m))
+        y, m = (y + 1, 1) if m == 12 else (y, m + 1)
+    days = [start + dt.timedelta(n) for n in range((today - start).days)]
+    have = [d for d in days if d in files]
+    if not have:
+        sys.exit("no IMERG files listed for this season")
+
+    sel = urllib.parse.quote(f"precipitation[0:0][{i0}:{i1}][{j0}:{j1}]", safe="")
+
+    def fetch(day):
+        url = f"{SERVER}/{day.year}/{day.month:02d}/{files[day]}.ascii?{sel}"
+        try:
+            return day, cell_means(parse_ascii(get(url, token)), cells, half_lat, half_lon)
+        except Exception as e:  # one missing day becomes nulls rather than losing the whole season
+            print(f"{day} failed: {e}", flush=True)
+            return day, None
+
+    by_day = {}
+    with concurrent.futures.ThreadPoolExecutor(max_workers=2) as pool:
+        for day, means in pool.map(fetch, have):
+            if means is not None:
+                by_day[day] = means
+                print(f"{day} ok", flush=True)
+    if len(by_day) < 0.8 * len(have):
+        sys.exit(f"only {len(by_day)} of {len(have)} days fetched; not writing a patchy file")
+
+    last = max(by_day)
+    span = [start + dt.timedelta(n) for n in range((last - start).days + 1)]
+    out = {
+        "product": PRODUCT,
+        "start": start.isoformat(),
+        "asOf": last.isoformat(),
+        "generated": dt.datetime.now(dt.timezone.utc).isoformat(timespec="seconds"),
+        "cells": {
+            c["id"]: [None if by_day.get(d, {}).get(c["id"]) is None else round(by_day[d][c["id"]], 1) for d in span]
+            for c in cells
+        },
+    }
+    OUT.parent.mkdir(parents=True, exist_ok=True)
+    OUT.write_text(json.dumps(out, separators=(",", ":")), encoding="utf-8")
+    print(f"wrote {OUT} with {len(span)} days to {last} for {len(cells)} cells")
+
+
+if __name__ == "__main__":
+    main()

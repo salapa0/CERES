@@ -72,8 +72,15 @@ so those two lines do not appear on `localhost`. To see them locally, download t
 recent deploy run and copy `data/imerg/current.json` and `data/smap/current.json` into `web/public/data/`.
 
 **Deploying** is automatic: every push to `main` runs `.github/workflows/deploy.yml`, which tests, fetches IMERG
-and SMAP, builds and publishes to GitHub Pages. A deploy takes 10–15 minutes, most of it NASA downloads. Pull
-requests run the same build without publishing.
+and SMAP, builds and publishes to GitHub Pages. Pull requests run the same build without publishing.
+
+IMERG is fetched **incrementally**. Each NASA request takes 10–50 s, and refetching the whole season (one request per
+day since 1 Aug) once held a deploy for 29 minutes. `pipeline/build_imerg.py` therefore starts from the file the live
+site already serves (`/CERES/data/imerg/current.json`), or, if that is unreachable or from another season, from
+`pipeline/data/imerg_baseline.json`, and fetches only the missing days plus the last three known ones, which NASA
+may still revise. With neither, it fetches the whole season as before. `python pipeline/build_imerg.py --plan` prints
+the plan without a token or any download. The repo copy needs no upkeep; refresh it once a season if you like (copy
+the live file over it) so a cold start has less to fetch.
 
 > **Never re-run an old deploy run.** Re-running a past "Test and deploy" run publishes that run's old build over
 > the live site (this happened once on 14 Nov). To redeploy, re-run the **latest** run on `main`, or push a commit.
@@ -117,7 +124,7 @@ The data contract in TypeScript is `web/src/engine/types.ts` (cells) and `web/sr
 | Source | Product | Access route | Auth | Refresh | Used for |
 |---|---|---|---|---|---|
 | NASA POWER | Daily `PRECTOTCORR`, `T2M_MAX`, `T2M_MIN`, `GWETROOT` (MERRA-2 based), 0.5° × 0.625° | `power.larc.nasa.gov/api/temporal/daily/point` | none | history once; current season live in the browser | All replays; look-alike seasons |
-| GPM IMERG | Late Run daily V07 (`GPM_3IMERGDL`), 0.1° | GES DISC on-premises OPeNDAP, ASCII subset of the Thailand box, `gpm1.gesdisc.eosdis.nasa.gov/opendap/GPM_L3/GPM_3IMERGDL.07/` | Earthdata token, `Authorization: Bearer` | every deploy + daily 01:30 UTC | Satellite rain line (F14) |
+| GPM IMERG | Late Run daily V07 (`GPM_3IMERGDL`), 0.1° | GES DISC on-premises OPeNDAP, ASCII subset of the Thailand box, `gpm1.gesdisc.eosdis.nasa.gov/opendap/GPM_L3/GPM_3IMERGDL.07/` | Earthdata token, `Authorization: Bearer` | every deploy + daily 01:30 UTC, new days only (reuses the live file) | Satellite rain line (F14) |
 | SMAP | L4 Global 3-hourly 9 km (`SPL4SMGP` v8), `sm_rootzone` | Granules found through public CMR search; Thailand subset read from NSIDC cloud OPeNDAP (`opendap.earthdata.nasa.gov`, DAP2 `.ascii`) | Earthdata token, Bearer | every deploy + daily | Soil-now line (F15) |
 | GLDAS | Noah 2.1 3-hourly (`GLDAS_NOAH025_3H`), `RootMoist_inst`, 0.25° | Giovanni time-series API, `api.giovanni.earthdata.nasa.gov/timeseries` (one point per request) | Earthdata token, Bearer (the `authorizationtoken` header in older examples is refused) | once, by hand (GLDAS workflow) | Self-check and High badge (F11) |
 | FAO-56 | Tables 11, 12, 19, 22 | fao.org web edition | – | – | Crop and soil values |

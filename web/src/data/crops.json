@@ -1,0 +1,70 @@
+[
+  {
+    "id": "mungbean", "nameTh": "ถั่วเขียว", "nameEn": "Mung bean",
+    "stages": { "ini": 15, "dev": 20, "mid": 25, "late": 10 },
+    "kc": { "ini": 0.4, "mid": 1.05, "end": 0.35 },
+    "rootDepthM": 0.6, "p": 0.45, "heatC": 40, "soilEffect": "nitrogen",
+    "sources": [
+      "FAO-56 Table 12, 'Green Gram and Cowpeas': Kc mid 1.05, Kc end 0.35 (the 'harvested dry' value; 0.60 is for fresh harvest). Kc ini 0.4 = legume group value",
+      "FAO-56 Table 22, 'Green Gram and Cowpeas': Zr 0.6–1.0 m, p 0.45. Zr is the low end because paddy soils have a plough pan (Table 22 footnote: larger values only for soils without layering)",
+      "Stage lengths: assumption. FAO-56 Table 11 gives 20/30/30/20 days for a March Mediterranean planting (its printed total says 110, the stages sum to 100); Thai varieties ripen in about 70 days",
+      "Heat limit: assumption"
+    ],
+    "market": {
+      "yieldKgPerRai": 150, "priceBahtPerKg": 22.0, "asOf": "2026-02",
+      "sources": [
+        "Price: OAE weekly farm-gate price, mung bean (ถั่วเขียวผิวมันเมล็ดใหญ่คละ), late Feb 2026: 22.00 baht/kg (range 21.06 in Dec 2025 to 31.48 in Apr 2026)",
+        "Yield: assumption, 150 kg/rai, between an after-rice field report in Yasothon 2024/25 (about 140 kg/rai) and the Rice Department's 190–220 kg/rai for variety KUML"
+      ]
+    },
+    "assumption": true
+  },
+  {
+    "id": "peanut", "nameTh": "ถั่วลิสง", "nameEn": "Peanut",
+    "stages": { "ini": 25, "dev": 35, "mid": 45, "late": 25 },
+    "kc": { "ini": 0.4, "mid": 1.15, "end": 0.6 },
+    "rootDepthM": 0.5, "p": 0.5, "heatC": 40, "soilEffect": "nitrogen",
+    "sources": [
+      "FAO-56 Table 11, 'Groundnut', dry season, West Africa: 25/35/45/25 days",
+      "FAO-56 Table 12, 'Groundnut (Peanut)': Kc mid 1.15, Kc end 0.60. Kc ini 0.4 = legume group value",
+      "FAO-56 Table 22, 'Groundnut (Peanut)': Zr 0.5–1.0 m (low end, plough pan), p 0.50",
+      "Heat limit: assumption"
+    ],
+    "market": {
+      "yieldKgPerRai": 630, "priceBahtPerKg": 26.41, "asOf": "2023-05",
+      "sources": [
+        "OAE study of dry-season peanut (ถั่วลิสงรุ่น 2), 2022/23, 195 farmers in 8 provinces incl. Khon Kaen, Roi Et, Kalasin, Sisaket, Sakon Nakhon: 630.37 kg fresh pods/rai at 26.41 baht/kg (reported by Khaosod, 27 May 2025)"
+      ]
+    },
+    "assumption": true
+  },
+  {
+    "id": "maize", "nameTh": "ข้าวโพดเลี้ยงสัตว์", "nameEn": "Field corn",
+    "stages": { "ini": 20, "dev": 35, "mid": 40, "late": 30 },
+    "kc": { "ini": 0.3, "mid": 1.2, "end": 0.6 },
+    "rootDepthM": 1.0, "p": 0.55, "heatC": 38, "soilEffect": "uses",
+    "sources": [
+      "FAO-56 Table 11, 'Maize (grain)', October, India (dry, cool): 20/35/40/30 days",
+      "FAO-56 Table 12, 'Maize, Field (grain)': Kc mid 1.20, Kc end 0.60 (harvest at high grain moisture; 0.35 after full field drying). Kc ini 0.3 = cereal group value",
+      "FAO-56 Table 22, 'Maize, Field (grain)': Zr 1.0–1.7 m (low end, plough pan), p 0.55",
+      "Heat limit: assumption"
+    ],
+    "market": {
+      "yieldKgPerRai": 748, "priceBahtPerKg": 8.19, "asOf": "2025-08",
+      "sources": [
+        "Price: OAE weekly farm-gate price, field corn at up to 14.5% moisture, 4–10 Aug 2025: 8.19 baht/kg",
+        "Yield: national average 748 kg/rai in 2024 (TDRI, 2026), all seasons; rain-fed after-rice fields may yield less"
+      ]
+    },
+    "assumption": true
+  },
+  {
+    "id": "sunnhemp", "nameTh": "ปอเทือง", "nameEn": "Sunn hemp",
+    "stages": { "ini": 15, "dev": 35, "mid": 0, "late": 0 },
+    "kc": { "ini": 0.4, "mid": 1.0, "end": 1.0 },
+    "rootDepthM": 0.8, "p": 0.5, "heatC": 99, "soilEffect": "organic",
+    "greenManure": true, "incorporateAfterDevDays": 0,
+    "sources": ["No FAO-56 entry. All values are assumptions: ploughed in at flowering, about 50 days after sowing"],
+    "assumption": true
+  }
+]

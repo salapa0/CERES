@@ -229,7 +229,7 @@ Defaults: sowing 15 Nov, loamy sand, lowland paddy, no waterings.
 | Sowing window and days left (F12) | `engine/index.ts`, cards B and C | 4 tests incl. "later sowing never raises odds in a steadily drying season"; browser |
 | What-if sliders (F13) | `Results.tsx` `WhatIfPanel` | Test on the real Khon Kaen cell: 0.7 × rain or +3 °C never raises any crop's odds; browser |
 | This season looks like… (F10) | `engine/analog.ts`, `data.ts` | 5 analog tests + parse test + 2 component tests; live: cell 16.50, 102.50 → data to 11 Nov 2026, looks like 2008, 2016, 2025 |
-| Waterings and waterings needed | `engine/index.ts`, `Results.tsx` | 3 engine + 1 component test; Khon Kaen: sunn hemp 7 → 20 of 25 seasons with 2 waterings |
+| Waterings and waterings needed | `engine/index.ts`, `Results.tsx` | 3 engine + 1 component test; cell 16.50, 102.50, defaults: sunn hemp 11 → 22 of 25 seasons with 2 waterings (rechecked 15 Nov afternoon) |
 | Share link | `share.ts`, `App.tsx`, `Results.tsx` | 4 codec + 3 component tests; browser incl. the clipboard fallback. **Not tried in LINE or on a phone** |
 | Income estimate | `engine/income.ts`, `crops.json` | 4 + 1 tests; Khon Kaen with 2 waterings: mung bean ≈ ฿330/rai average, ฿3,300 good year |
 | IMERG satellite rain (F14) | `build_imerg.py`, `Results.tsx` `SatelliteRain` | 3 pipeline + 2 component tests; live site, cell 16.50, 103.13: IMERG 412 mm vs POWER 633 mm, 1 Aug → 12 Nov |

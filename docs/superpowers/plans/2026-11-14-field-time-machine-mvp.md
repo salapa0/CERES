@@ -90,9 +90,9 @@ export interface BadgeResult { level: 'high' | 'medium' | 'low'; reasons: string
 - [ ] **Step 4:** Create `pipeline/pyproject.toml` (package `ceres_pipeline`, Python ≥ 3.11, deps from Tech Stack, `dev` extra with pytest) and `test_smoke.py` (`import ceres_pipeline`). Run `cd pipeline && pip install -e ".[dev]" && pytest -q` → 1 passed.
 - [ ] **Step 5:** Write `types.ts`, the `index.ts` stubs, `constants.ts` and the three sample files. Run `npx --prefix web tsc --noEmit -p web` → no errors.
 - [ ] **Step 6:** Write `deploy.yml`: `on: [push, workflow_call, workflow_dispatch]`; jobs: test (pytest + `npm test -- --run`), build (`npm run build` in `web`), deploy with `actions/upload-pages-artifact` + `actions/deploy-pages`; permissions `pages: write, id-token: write, contents: read`. Deploy only from `main`.
-- [ ] **Step 7:** Enable Pages: `gh api -X POST repos/salapa0/ceres/pages -f build_type=workflow` (ignore "already exists").
+- [ ] **Step 7:** Enable Pages: `gh api -X POST repos/salapa0/CERES/pages -f build_type=workflow` (ignore "already exists").
 - [ ] **Step 8:** Commit `Scaffold web app, pipeline, contracts and Pages deploy`, push `main`.
-- [ ] **Step 9:** Verify: `gh run watch` shows the deploy succeeding, and `curl -s https://salapa0.github.io/ceres/ | grep -c CERES` prints ≥ 1.
+- [ ] **Step 9:** Verify: `gh run watch` shows the deploy succeeding, and `curl -s https://salapa0.github.io/CERES/ | grep -c CERES` prints ≥ 1.
 - [ ] **Step 10:** Tell the human: add repo secrets `EARTHDATA_USERNAME` / `EARTHDATA_PASSWORD` (needed from P1). Then start the three lane sessions from `main`.
 
 ---
@@ -265,7 +265,7 @@ Owns: `web/src/components/`, `web/src/pages/`, `web/src/lib/`, `web/src/i18n/`, 
 - [ ] **Step 3:** `npm --prefix web run dev`, open `#/field?lat=16.44&lon=102.83`: three cards, four rows, at least 20 season columns. Science sanity check (§14): mung bean `good` ≥ maize `good`. If not, record numbers in `docs/decisions.md` and inspect `crops.json` and constants before changing anything else.
 - [ ] **Step 4:** Update `README.md`: what it does, live link, NASA data used with resolution and limits (§16), how to run (`web`, `pipeline`), AI-use statement, licence, "Not affiliated with or endorsed by NASA".
 - [ ] **Step 5:** Commit `Wire MVP and update README`; push `main`; `gh run watch` → deploy succeeds.
-- [ ] **Step 6:** Verify on a phone (or 360 px emulation) at `https://salapa0.github.io/ceres/#/field?lat=16.44&lon=102.83`: results within 3 s, numbers equal to the dev run. Tap the sea → outside message.
+- [ ] **Step 6:** Verify on a phone (or 360 px emulation) at `https://salapa0.github.io/CERES/#/field?lat=16.44&lon=102.83`: results within 3 s, numbers equal to the dev run. Tap the sea → outside message.
 - [ ] **Step 7:** `git tag v0.1-mvp && git push origin v0.1-mvp`.
 
 ---

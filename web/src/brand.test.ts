@@ -13,6 +13,6 @@ test('the brand is CERES', () => {
 });
 
 // Pages serves the site under the repo's name, so the base must match it: when the two differed, the page went blank.
-test('the site lives at the repo path /ceres/', () => {
-  expect(viteConfig).toContain("base: '/ceres/'");
+test('the site lives at the repo path /CERES/', () => {
+  expect(viteConfig).toContain("base: '/CERES/'");
 });

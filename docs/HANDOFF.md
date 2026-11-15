@@ -1,8 +1,8 @@
 # CERES Field Time Machine: handoff
 
 **Written:** Sun 15 Nov 2026, early afternoon (Thailand time), after pull request 8 was merged.
-**Live:** https://salapa0.github.io/ceres/ (deploys from `main` on every push and once a day).
-**Code:** https://github.com/salapa0/ceres. Everything is on `main`; no feature branch is open.
+**Live:** https://salapa0.github.io/CERES/ (deploys from `main` on every push and once a day).
+**Code:** https://github.com/salapa0/CERES. Everything is on `main`; no feature branch is open.
 **Deadline:** submit to NASA Space Apps by Sun 15 Nov 2026, 20:00 Thailand time (hard close 23:59).
 
 This file is the single place to learn what exists, how it runs, and what to watch. The blueprint
@@ -57,7 +57,7 @@ What the user sees, top to bottom:
 ```bash
 cd web
 npm install
-npm run dev        # http://localhost:5173/ceres/
+npm run dev        # http://localhost:5173/CERES/
 npm test           # 70 tests in 10 files
 npm run build      # typecheck + production build into web/dist
 ```

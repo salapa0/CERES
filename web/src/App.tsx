@@ -6,6 +6,7 @@ import { t, type Key, type Lang } from './i18n';
 import { BrandMark, FieldsArt, IconLocate } from './icons';
 import { MapView, type MapPoint } from './MapView';
 import { Results, type CurrentState } from './Results';
+import { decodeShare, encodeShare, type Settings } from './share';
 
 type Status = 'idle' | 'loading' | 'loadingLive' | 'outside' | 'error';
 type Locate = 'idle' | 'busy' | 'failed';
@@ -19,6 +20,8 @@ export default function App() {
   const [current, setCurrent] = useState<CurrentState | undefined>();
   const [status, setStatus] = useState<Status>('idle');
   const [locate, setLocate] = useState<Locate>('idle');
+  // Kept here, not in Results, so settings survive picking another field and can go into the link.
+  const [settings, setSettings] = useState<Partial<Settings>>({});
   const request = useRef(0); // only the latest tap may update the page
   const resultsRef = useRef<HTMLDivElement>(null);
   const T = (key: Key) => t(lang, key);
@@ -26,6 +29,24 @@ export default function App() {
   useEffect(() => {
     loadGrid().then(setGrid).catch(() => setStatus('error'));
   }, []);
+
+  // A shared link opens straight on its field, settings and language.
+  const opened = useRef(false);
+  useEffect(() => {
+    if (!grid || opened.current) return;
+    opened.current = true;
+    const shared = decodeShare(window.location.hash);
+    if (!shared) return;
+    if (shared.lang) setLang(shared.lang);
+    setSettings(shared.settings);
+    onPick(shared.lat, shared.lon, true);
+  }, [grid]); // eslint-disable-line react-hooks/exhaustive-deps
+
+  // Keep the address bar in step, so copying it (or the Copy link button) shares this exact view.
+  useEffect(() => {
+    if (!point) return;
+    window.history.replaceState(null, '', encodeShare({ lat: point.lat, lon: point.lon, lang, settings }));
+  }, [point, lang, settings]);
 
   useEffect(() => {
     document.documentElement.lang = lang;
@@ -128,7 +149,7 @@ export default function App() {
             </p>
           )}
           <div ref={resultsRef} className="results-anchor">
-            {cell && <Results cell={cell} lang={lang} current={current} />}
+            {cell && <Results cell={cell} lang={lang} current={current} initial={settings} onSettings={setSettings} />}
           </div>
         </div>
       </main>

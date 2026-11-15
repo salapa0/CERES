@@ -1,4 +1,5 @@
 import { fireEvent, render, screen } from '@testing-library/react';
+import { vi } from 'vitest';
 import type { CellData, Num, SeasonData } from './engine';
 import { Results } from './Results';
 
@@ -85,4 +86,33 @@ test('choosing waterings improves a dry field and each crop card says how much w
   fireEvent.change(screen.getByTestId('waterings'), { target: { value: '8' } });
   expect(screen.queryAllByRole('button', { name: /✖/ }).length).toBeLessThan(failedBefore);
   expect(screen.getAllByText(/Counting your 8 waterings/).length).toBeGreaterThan(0);
+});
+
+it('starts from settings in a shared link and reports each change so the link can follow', () => {
+  const seen: unknown[] = [];
+  render(<Results cell={cell([season(2015, 5, 0.8)])} lang="en"
+    initial={{ sow: '12-01', soil: 'sandyLoam', position: 'upland', waterings: 2 }} onSettings={(s) => seen.push(s)} />);
+  expect(screen.getByTestId('waterings')).toHaveValue('2');
+  expect(screen.getByLabelText(/soil/i)).toHaveValue('sandyLoam');
+  fireEvent.change(screen.getByTestId('waterings'), { target: { value: '4' } });
+  expect(seen[seen.length - 1]).toEqual({ sow: '12-01', soil: 'sandyLoam', position: 'upland', waterings: 4 });
+});
+
+it('copies the page link when the share button is pressed', async () => {
+  const writeText = vi.fn().mockResolvedValue(undefined);
+  Object.assign(navigator, { clipboard: { writeText } });
+  render(<Results cell={cell([season(2015, 5, 0.8)])} lang="en" />);
+  fireEvent.click(screen.getByRole('button', { name: /Copy link/ }));
+  expect(writeText).toHaveBeenCalledWith(window.location.href);
+  expect(await screen.findByText(/Link copied/)).toBeInTheDocument();
+});
+
+it('falls back to the older copy command where the clipboard is blocked', async () => {
+  Object.assign(navigator, { clipboard: { writeText: vi.fn().mockRejectedValue(new Error('blocked')) } });
+  const exec = vi.fn().mockReturnValue(true);
+  Object.assign(document, { execCommand: exec });
+  render(<Results cell={cell([season(2015, 5, 0.8)])} lang="en" />);
+  fireEvent.click(screen.getByRole('button', { name: /Copy link/ }));
+  expect(await screen.findByText(/Link copied/)).toBeInTheDocument();
+  expect(exec).toHaveBeenCalledWith('copy');
 });

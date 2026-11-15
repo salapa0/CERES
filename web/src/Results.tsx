@@ -1,4 +1,4 @@
-import { useDeferredValue, useMemo, useState } from 'react';
+import { useDeferredValue, useEffect, useMemo, useRef, useState } from 'react';
 import {
   buildStrategies, dayIndexToDate, daysLeft, loadCrops, replay, runTimeline, seasonLength, sowingWindow, waterNeeded,
   type CellData, type Crop, type FieldPosition, type OddsResult, type Outcome, type SeasonData, type SoilTexture,
@@ -8,13 +8,12 @@ import { analogOdds, analogsSplit, findAnalogs, type Analog, type CurrentSeason 
 import { DEFAULT_POSITION, DEFAULT_SOIL, DEFAULT_SOW, IRRIGATION_MM, SOIL_TEXTURES, WATERINGS_SEARCH_MAX } from './engine/constants';
 import { formatDate, formatMonthDay, formatSeason, t, type Key, type Lang } from './i18n';
 import { IconClose, IconHistory, IconLeaf, IconPin } from './icons';
+import { SOW_DATES, WATERING_CHOICES, type Settings } from './share';
 
-const SOW_DATES = ['11-01', '11-15', '12-01', '12-15', '01-01', '01-15', '02-01'];
 const ICON: Record<Outcome['kind'], string> = { good: '🌱', poor: '🍂', failed: '✖', nodata: '·' };
 const KINDS: Outcome['kind'][] = ['good', 'poor', 'failed', 'nodata'];
 const MIN_SEASONS_FOR_MEDIUM = 15;
 const REAL: WhatIf = { rainFactor: 1, dT: 0 };
-const WATERING_CHOICES = [0, 1, 2, 3, 4, 6, 8];
 
 /** Live data for the season under way: still loading, failed, or loaded. */
 export type CurrentState = 'loading' | 'error' | CurrentSeason;
@@ -28,14 +27,18 @@ function tone(odds: OddsResult | null): 'good' | 'mid' | 'low' | 'none' {
   return share >= 0.6 ? 'good' : share >= 0.3 ? 'mid' : 'low';
 }
 
-export function Results({ cell, lang, current, today = new Date() }: {
+export function Results({ cell, lang, current, today = new Date(), initial = {}, onSettings }: {
   cell: CellData; lang: Lang; current?: CurrentState; today?: Date;
+  initial?: Partial<Settings>; onSettings?: (s: Settings) => void;
 }) {
   const crops = useMemo(loadCrops, []);
-  const [sow, setSow] = useState(DEFAULT_SOW);
-  const [soil, setSoil] = useState<SoilTexture>(DEFAULT_SOIL);
-  const [position, setPosition] = useState<FieldPosition>(DEFAULT_POSITION);
-  const [waterings, setWaterings] = useState(0);
+  const [sow, setSow] = useState(initial.sow ?? DEFAULT_SOW);
+  const [soil, setSoil] = useState<SoilTexture>(initial.soil ?? DEFAULT_SOIL);
+  const [position, setPosition] = useState<FieldPosition>(initial.position ?? DEFAULT_POSITION);
+  const [waterings, setWaterings] = useState(initial.waterings ?? 0);
+  const report = useRef(onSettings);
+  report.current = onSettings;
+  useEffect(() => { report.current?.({ sow, soil, position, waterings }); }, [sow, soil, position, waterings]);
   const [whatIfNow, setWhatIf] = useState<WhatIf>(REAL);
   const whatIf = useDeferredValue(whatIfNow); // keeps the sliders smooth while the replays catch up
   const [open, setOpen] = useState<{ crop: Crop; season: SeasonData } | null>(null);
@@ -64,6 +67,7 @@ export function Results({ cell, lang, current, today = new Date() }: {
         <span className="coord" title={`${T('results.chosen')} · ${T('field.cellNote')}`}>
           <IconPin /> {cell.lat.toFixed(2)}, {cell.lon.toFixed(2)}
         </span>
+        <ShareButton lang={lang} />
       </div>
 
       <Summary strategies={strategies} crops={crops} windows={windows} lang={lang} today={today} whatIfDesc={whatIfDesc}
@@ -318,6 +322,44 @@ function WindowInfo({ w, lang, today }: { w: SowingWindow; lang: Lang; today: Da
         </p>
       ) : <p className="window-date late">{T('card.noWindow')}</p>}
     </div>
+  );
+}
+
+// In-app browsers (LINE, Facebook) and embedded panes often block the clipboard API; the old command still works there.
+function copyBySelection(text: string): boolean {
+  const box = document.createElement('textarea');
+  box.value = text;
+  box.setAttribute('readonly', '');
+  box.style.position = 'fixed';
+  box.style.opacity = '0';
+  document.body.appendChild(box);
+  box.select();
+  try {
+    return document.execCommand('copy');
+  } catch {
+    return false;
+  } finally {
+    box.remove();
+  }
+}
+
+/** Copies the page address, which App keeps in step with the chosen field and settings. */
+function ShareButton({ lang }: { lang: Lang }) {
+  const [state, setState] = useState<'idle' | 'copied' | 'failed'>('idle');
+  async function copy() {
+    const url = window.location.href;
+    try {
+      await navigator.clipboard.writeText(url);
+      setState('copied');
+    } catch {
+      setState(copyBySelection(url) ? 'copied' : 'failed');
+    }
+  }
+  return (
+    <span className="share">
+      <button className="button secondary small" onClick={copy}>{t(lang, 'share.copy')}</button>
+      {state !== 'idle' && <span role="status" className="share-note">{t(lang, `share.${state}`)}</span>}
+    </span>
   );
 }
 

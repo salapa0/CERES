@@ -22,6 +22,8 @@ often would it have survived on the water in the soil and the rain that followed
   most similar past seasons.
 - **Time machine timeline:** every crop in every past season; tap one to see the soil-water chart and the day and
   cause of failure.
+- **Share link:** the page address keeps the field and its settings, so "Copy link" sends someone the exact same answer
+  (for example, to the local extension officer). Try the pilot area: https://salapa0.github.io/demeter-fieldshift/#lat=16.43&lon=102.83
 - **Times you can water:** tell the app how many waterings you can give (30 mm each, from a pond or shallow well)
   and the odds update. Each crop card also says how many waterings that crop needs to survive 4 years in 5, or that
   it is a crop for irrigated fields.

@@ -136,6 +136,8 @@ main { max-width: 1072px; margin: 0 auto; padding: 20px 16px 8px; display: flex;
 .results-head { display: flex; align-items: flex-end; justify-content: space-between; gap: 12px; flex-wrap: wrap; }
 .results-head h2 { font-size: 28px; letter-spacing: -.6px; }
 .results-head p { color: var(--muted); font-size: var(--fs-small); margin-top: 4px; }
+.share { display: inline-flex; align-items: center; gap: 10px; flex-wrap: wrap; margin-left: auto; }
+.share-note { color: var(--muted); font-size: var(--fs-small); }
 .coord { display: inline-flex; align-items: center; gap: 6px; padding: 6px 12px; border-radius: 999px; background: var(--card); border: 1px solid var(--line); color: var(--ink-3); font-size: var(--fs-small); font-weight: 600; font-variant-numeric: tabular-nums; }
 
 .inputs { display: grid; grid-template-columns: repeat(4, minmax(0, 1fr)); gap: 12px; padding: 16px; }

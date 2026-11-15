@@ -19,5 +19,6 @@ web/dist/
 pipeline/build.log
 .superpowers/
 
-# Built by the deploy workflow with the Earthdata secret (pipeline/build_imerg.py); never committed
+# Built by the deploy workflow with the Earthdata secret (pipeline/build_imerg.py, build_smap.py); never committed
 web/public/data/imerg/
+web/public/data/smap/

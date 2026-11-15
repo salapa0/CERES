@@ -12,6 +12,10 @@ export const WINDOW_FIRST = '11-01'; // sowing window sweep: 1 Nov to 1 Feb in 7
 export const WINDOW_LAST = '02-01';
 export const WINDOW_STEP_DAYS = 7;
 export const ANALOG_K = 3; // nearest past seasons used for "this season looks like…"
+export const SELFCHECK_TOLERANCE_DAYS = 14; // model and satellite dry-down dates within two weeks agree
+export const HIT_RATE_HIGH = 0.75; // self-check needed for a High badge
+export const HIT_RATE_LOW = 0.5; // below this the badge is Low
+export const MIN_SEASONS_FOR_MEDIUM = 15; // fewer seasons with data make the badge Low
 
 // Most water a shallow water table can lift into the root zone (FAO-56 "CR"), mm/day.
 // Lowland paddies keep a shallow water table after the wet season; that is what makes

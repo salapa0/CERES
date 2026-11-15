@@ -133,6 +133,31 @@ test('satellite rain from IMERG is shown next to the model rain over the same da
   expect(screen.getByTestId('imerg-line')).toHaveTextContent(/satellite.*30 mm.*6 mm/i);
 });
 
+/** GLDAS at the top of its range until April, long after the mung bean harvest, then dry. */
+const withRootzone = (s: SeasonData): SeasonData => ({ ...s, rootzone: s.rain.map((_, i) => (i < 250 ? 400 : 100)) });
+
+test('the GLDAS self-check line and a High badge when the model agrees and look-alike years agree', () => {
+  const past = Array.from({ length: 16 }, (_, k) => withRootzone(season(2001 + k, 5, 0.8)));
+  const days = 112; // 1 Aug to 20 Nov
+  const now = {
+    year: 2026, start: '2026-08-01', asOf: '2026-11-20',
+    rain: past[3].rain.slice(0, days), tmax: past[3].tmax.slice(0, days), tmin: past[3].tmin.slice(0, days),
+    wetness: past[3].wetness.slice(0, days),
+  };
+  render(<Results cell={cell(past)} lang="en" current={now} />);
+  // Rain every day: neither the model nor GLDAS dries during the crop, so every season agrees.
+  expect(screen.getByTestId('selfcheck-line')).toHaveTextContent(/GLDAS.*16 of 16 seasons/);
+  expect(screen.getAllByText('Confidence: High')).toHaveLength(2);
+});
+
+test('without GLDAS data there is no self-check line and the badge stays at Medium', () => {
+  const past = Array.from({ length: 16 }, (_, k) => season(2001 + k, 5, 0.8));
+  render(<Results cell={cell(past)} lang="en" />);
+  expect(screen.queryByTestId('selfcheck-line')).toBeNull();
+  expect(screen.getAllByText('Confidence: Medium')).toHaveLength(2);
+  expect(screen.getAllByText('Not yet checked against satellite data').length).toBeGreaterThan(0);
+});
+
 test('no satellite line without IMERG data', () => {
   render(<Results cell={cell([season(2015, 5, 0.8)])} lang="en" />);
   expect(screen.queryByTestId('imerg-line')).toBeNull();

@@ -78,7 +78,6 @@ export function Results({ cell, lang, current, today = new Date(), initial = {},
     return mung ? selfCheck(cell, mung, soil, position) : null;
   }, [cell, crops, soil, position]);
   const hitRate = check && check.total > 0 ? check.agree / check.total : null;
-  const name = (c: Crop) => (lang === 'th' ? c.nameTh : c.nameEn);
   const T: Tr = (key, vars) => t(lang, key, vars);
   const whatIfDesc = describeWhatIf(whatIf, lang);
 
@@ -126,71 +125,76 @@ export function Results({ cell, lang, current, today = new Date(), initial = {},
       </footer>
     </section>
   );
+}
 
-  /** Kept inside Results only for `name`; see the components below for the rest. */
-  function YearChart({ timeline, shown, recId, open, onOpen }: {
-    cell: CellData; crops: Crop[]; timeline: Record<string, Outcome[]>; analogs: Analog[]; shown: string; recId: string | null;
-    open: { crop: Crop; season: SeasonData } | null; onOpen: (o: { crop: Crop; season: SeasonData }) => void; lang: Lang;
-  }) {
-    const [all, setAll] = useState(false);
-    const minor = (c: Crop) => c.id !== shown && c.id !== recId;
-    return (
-      <section className={`card timeline-card${all ? ' show-all' : ''}`} aria-labelledby="timeline-title">
-        <div className="card-heading">
-          <div>
-            <h3 id="timeline-title">{T('timeline.title')}</h3>
-            <p>{T('timeline.hint')}</p>
-          </div>
+/**
+ * Every crop in every past year. A top-level component on purpose: declared inside Results, React saw a new
+ * component on each render and rebuilt it, losing "show all" and the focused year button.
+ */
+function YearChart({ cell, crops, timeline, analogs, shown, recId, open, onOpen, lang }: {
+  cell: CellData; crops: Crop[]; timeline: Record<string, Outcome[]>; analogs: Analog[]; shown: string; recId: string | null;
+  open: { crop: Crop; season: SeasonData } | null; onOpen: (o: { crop: Crop; season: SeasonData }) => void; lang: Lang;
+}) {
+  const T: Tr = (key, vars) => t(lang, key, vars);
+  const name = (c: Crop) => cropName(c, lang);
+  const [all, setAll] = useState(false);
+  const minor = (c: Crop) => c.id !== shown && c.id !== recId;
+  return (
+    <section className={`card timeline-card${all ? ' show-all' : ''}`} aria-labelledby="timeline-title">
+      <div className="card-heading">
+        <div>
+          <h3 id="timeline-title">{T('timeline.title')}</h3>
+          <p>{T('timeline.hint')}</p>
         </div>
-        <ul className="legend" aria-label={T('legend')}>
-          {KINDS.map((k) => (
-            <li key={k}><span className={`mark ${k}`} aria-hidden="true" />{T(`outcome.${k}`)}</li>
-          ))}
-          {analogs.length > 0 && <li><span className="swatch analog-swatch" />{T('timeline.analogKey')}</li>}
-        </ul>
-        <div className="timeline">
-          <table>
-            <thead>
-              <tr>
-                <th scope="col" className="corner" />
-                {cell.seasons.map((s) => (
-                  <th key={s.year} title={formatSeason(s.year, lang)}
-                    className={analogs.some((a) => a.year === s.year) ? 'analog' : undefined}>
-                    <span>{formatSeason(s.year, lang).slice(2, 4)}</span>
-                  </th>
-                ))}
-              </tr>
-            </thead>
-            <tbody>
-              {crops.map((crop) => (
-                <tr key={crop.id} data-testid="timeline-row"
-                  className={crop.id === shown ? 'is-picked' : minor(crop) ? 'minor' : undefined}>
-                  <th scope="row">{name(crop)}</th>
-                  {timeline[crop.id].map((o, i) => {
-                    const isOpen = open?.crop.id === crop.id && open.season.year === cell.seasons[i].year;
-                    return (
-                      <td key={cell.seasons[i].year}>
-                        <button className={`cell${isOpen ? ' is-open' : ''}`} aria-pressed={isOpen}
-                          onClick={() => onOpen({ crop, season: cell.seasons[i] })}
-                          aria-label={`${formatSeason(cell.seasons[i].year, lang)}: ${T(`outcome.${o.kind}`)}`}
-                          title={`${formatSeason(cell.seasons[i].year, lang)}: ${T(`outcome.${o.kind}`)}`}>
-                          <span className={`mark ${o.kind}`} aria-hidden="true" />
-                        </button>
-                      </td>
-                    );
-                  })}
-                </tr>
+      </div>
+      <ul className="legend" aria-label={T('legend')}>
+        {KINDS.map((k) => (
+          <li key={k}><span className={`mark ${k}`} aria-hidden="true" />{T(`outcome.${k}`)}</li>
+        ))}
+        {analogs.length > 0 && <li><span className="swatch analog-swatch" />{T('timeline.analogKey')}</li>}
+      </ul>
+      <div className="timeline">
+        <table>
+          <thead>
+            <tr>
+              <th scope="col" className="corner" />
+              {cell.seasons.map((s) => (
+                <th key={s.year} title={formatSeason(s.year, lang)}
+                  className={analogs.some((a) => a.year === s.year) ? 'analog' : undefined}>
+                  <span>{formatSeason(s.year, lang).slice(2, 4)}</span>
+                </th>
               ))}
-            </tbody>
-          </table>
-        </div>
-        {/* On a phone ten rows bury the answer; show the picked and recommended crop first. CSS hides this on wide screens. */}
-        <button className="button secondary small show-all-toggle" aria-expanded={all} onClick={() => setAll(!all)}>
-          {all ? T('timeline.fewer') : T('timeline.all')}
-        </button>
-      </section>
-    );
-  }
+            </tr>
+          </thead>
+          <tbody>
+            {crops.map((crop) => (
+              <tr key={crop.id} data-testid="timeline-row"
+                className={crop.id === shown ? 'is-picked' : minor(crop) ? 'minor' : undefined}>
+                <th scope="row">{name(crop)}</th>
+                {timeline[crop.id].map((o, i) => {
+                  const isOpen = open?.crop.id === crop.id && open.season.year === cell.seasons[i].year;
+                  return (
+                    <td key={cell.seasons[i].year}>
+                      <button className={`cell${isOpen ? ' is-open' : ''}`} aria-pressed={isOpen}
+                        onClick={() => onOpen({ crop, season: cell.seasons[i] })}
+                        aria-label={`${formatSeason(cell.seasons[i].year, lang)}: ${T(`outcome.${o.kind}`)}`}
+                        title={`${formatSeason(cell.seasons[i].year, lang)}: ${T(`outcome.${o.kind}`)}`}>
+                        <span className={`mark ${o.kind}`} aria-hidden="true" />
+                      </button>
+                    </td>
+                  );
+                })}
+              </tr>
+            ))}
+          </tbody>
+        </table>
+      </div>
+      {/* On a phone ten rows bury the answer; show the picked and recommended crop first. CSS hides this on wide screens. */}
+      <button className="button secondary small show-all-toggle" aria-expanded={all} onClick={() => setAll(!all)}>
+        {all ? T('timeline.fewer') : T('timeline.all')}
+      </button>
+    </section>
+  );
 }
 
 function AnalogLine({ current, analogs, lang }: { current?: CurrentState; analogs: Analog[]; lang: Lang }) {

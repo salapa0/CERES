@@ -123,6 +123,11 @@ main {
 .map-card { padding: 6px; scroll-margin-top: 72px; }
 .map-wrap { position: relative; }
 .map-hint { position: absolute; left: 50%; bottom: 14px; transform: translateX(-50%); margin: 0; padding: 8px 16px; border-radius: 999px; background: rgba(28, 38, 32, .86); color: #fff; font-size: var(--fs-small); font-weight: 700; white-space: nowrap; pointer-events: none; }
+/* Keyboard picking: a cross marks the map centre, the spot Enter picks. White-edged so it shows on map and photo. */
+.map-cross { position: absolute; left: 50%; top: 50%; width: 28px; height: 28px; transform: translate(-50%, -50%); pointer-events: none; z-index: 2; }
+.map-cross::before, .map-cross::after { content: ''; position: absolute; background: var(--kram); box-shadow: 0 0 0 2px #fff; border-radius: 2px; }
+.map-cross::before { left: 12px; top: 0; width: 4px; height: 28px; }
+.map-cross::after { top: 12px; left: 0; width: 28px; height: 4px; }
 .map { height: 340px; border-radius: 10px; overflow: hidden; background: #E3E9E1; touch-action: pan-x pan-y; }
 .workspace.has-field .map { height: 240px; }
 .basemap-toggle { position: absolute; left: 10px; top: 10px; display: flex; padding: 3px; gap: 2px; border-radius: 12px; background: rgba(255, 255, 255, .95); border: 1px solid var(--line); }

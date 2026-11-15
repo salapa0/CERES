@@ -81,6 +81,20 @@ def cell_means(values, lats, lons, cells, half_lat, half_lon):
     return out
 
 
+def past_dates(day, first_year=FIRST_YEAR):
+    """[(year, the same calendar day in that year)] for each earlier year with SMAP data (from 31 Mar 2015).
+    29 February becomes 28 February in a common year, rather than failing the whole run."""
+    out = []
+    for y in range(first_year, day.year):
+        try:
+            d = dt.date(y, day.month, day.day)
+        except ValueError:
+            d = dt.date(y, day.month, day.day - 1)
+        if d >= dt.date(2015, 3, 31):
+            out.append((y, d))
+    return out
+
+
 def mean_of(days):
     """Per-cell mean over several granules, ignoring None."""
     out = {}
@@ -141,14 +155,13 @@ def main():
         with concurrent.futures.ThreadPoolExecutor(max_workers=2) as pool:
             return d, mean_of(list(pool.map(granule, links)))
 
-    years = [y for y in range(FIRST_YEAR, day.year) if dt.date(y, day.month, day.day) >= dt.date(2015, 3, 31)]
     now = day_mean(day)[1]
     if now is None:
         sys.exit(f"no SMAP values for {day}")
     past = {}
-    for y in years:
+    for y, same_day in past_dates(day):
         try:
-            d, m = day_mean(dt.date(y, day.month, day.day))
+            _, m = day_mean(same_day)
         except Exception as e:  # a missing past year narrows the comparison, it does not stop the run
             print(f"{y} failed: {e}", flush=True)
             continue

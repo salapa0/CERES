@@ -1,9 +1,9 @@
 # CERES — Field Time Machine: Blueprint
 
-**Status:** design, approved choices recorded below. Supersedes `docs/superpowers/plans/2026-11-14-demeter-fieldshift.md` (old Streamlit plan) and the feature table in `README.md`.
+**Status:** design, approved choices recorded below. Supersedes `docs/superpowers/plans/2026-11-14-ceres-fieldshift.md` (old Streamlit plan) and the feature table in `README.md`.
 **Event:** NASA Space Apps Challenge 2026, challenge *Field Shift: Adapting Farms with NASA Data*.
 **Deadline:** submit by **Sun 15 Nov 2026, 20:00** Thailand time (hard close 23:59).
-**Deliverable:** an MVP prototype hosted on **GitHub Pages** from `salapa0/demeter-fieldshift`.
+**Deliverable:** an MVP prototype hosted on **GitHub Pages** from `salapa0/ceres-fieldshift`.
 
 ---
 
@@ -134,7 +134,7 @@ Other recorded decisions from the team conversation (Q1–Q20):
 ### Repository layout
 
 ```
-demeter-fieldshift/
+ceres-fieldshift/
 ├─ README.md
 ├─ LICENSE
 ├─ docs/
@@ -143,7 +143,7 @@ demeter-fieldshift/
 │  └─ decisions.md          (one line per builder decision)
 ├─ pipeline/                (Python 3.11)
 │  ├─ pyproject.toml
-│  ├─ demeter_pipeline/
+│  ├─ ceres_pipeline/
 │  │  ├─ grid.py            (Thailand cells)
 │  │  ├─ power.py           (NASA POWER client)
 │  │  ├─ gldas.py           (GLDAS root-zone history)
@@ -525,8 +525,8 @@ The schedule is a target against the deadline. **P0 is the MVP; submit it even i
 **Done when:** each source has a fixture file and a section in `data-access.md`, or a written "blocked: why" line. A blocked P1 source moves that feature to "not in this build".
 
 ### M1 — Scaffold and live page (Sat night)
-- Create the `web/` Vite React TS app with Tailwind, Vitest, i18n files and style tokens; `pipeline/` package with pytest; `LICENSE` (MIT); `.github/workflows/deploy.yml` (run both test suites, build web with base path `/demeter-fieldshift/`, deploy to Pages).
-- Enable Pages with source "GitHub Actions" (`gh api -X POST repos/salapa0/demeter-fieldshift/pages -f build_type=workflow`, or Settings → Pages). The repo is already public.
+- Create the `web/` Vite React TS app with Tailwind, Vitest, i18n files and style tokens; `pipeline/` package with pytest; `LICENSE` (MIT); `.github/workflows/deploy.yml` (run both test suites, build web with base path `/ceres-fieldshift/`, deploy to Pages).
+- Enable Pages with source "GitHub Actions" (`gh api -X POST repos/salapa0/ceres-fieldshift/pages -f build_type=workflow`, or Settings → Pages). The repo is already public.
 - Add the repo secrets `EARTHDATA_USERNAME` and `EARTHDATA_PASSWORD` (a human does this; agents never handle the password).
 **Done when:** `npm test` and `pytest` both pass in CI, and the public Pages URL shows the Thai placeholder header from `th.json`.
 

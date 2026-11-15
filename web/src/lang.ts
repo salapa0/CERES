@@ -1,6 +1,6 @@
 import type { Lang } from './i18n';
 
-const KEY = 'demeter.lang'; // the old project name, kept so a saved language survives the CERES rename
+const KEY = 'ceres.lang';
 const isLang = (x: unknown): x is Lang => x === 'th' || x === 'en';
 
 /** Which language to open in: the share link's, then the visitor's last choice, then the phone's own language. */

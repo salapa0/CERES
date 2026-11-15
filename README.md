@@ -2,7 +2,7 @@
 
 **What should a rain-fed rice farmer in Thailand plant after the harvest? Tap your field, and the app replays 25 past dry seasons of NASA data to show how each crop would have done.**
 
-**Live demo: https://salapa0.github.io/demeter-fieldshift/**
+**Live demo: https://salapa0.github.io/ceres-fieldshift/**
 
 NASA Space Apps Challenge 2026, challenge *Field Shift: Adapting Farms with NASA Data*.
 Submission deadline: Sunday 15 Nov 2026, 23:59 local time (team target: 20:00).
@@ -38,7 +38,7 @@ often would it have survived on the water in the soil and the rain that followed
   says in how many past seasons the model's dry-down day matched NASA GLDAS soil moisture; it decides whether a card's
   confidence badge can reach High.
 - **Share link:** the page address keeps the field and its settings, so "Copy link" sends someone the exact same answer
-  (for example, to the local extension officer). Try the pilot area: https://salapa0.github.io/demeter-fieldshift/#lat=16.43&lon=102.83
+  (for example, to the local extension officer). Try the pilot area: https://salapa0.github.io/ceres-fieldshift/#lat=16.43&lon=102.83
 - **Times you can water:** tell the app how many waterings you can give (30 mm each, from a pond or shallow well)
   and the odds update. The picked crop also says how many waterings that crop needs to survive 4 years in 5, or that
   it is a crop for irrigated fields.
@@ -79,7 +79,7 @@ when the soil passes the crop's stress line, at most once a week, while the farm
 ```bash
 cd web
 npm install
-npm run dev        # http://localhost:5173/demeter-fieldshift/
+npm run dev        # http://localhost:5173/ceres-fieldshift/
 npm test
 npm run build      # typecheck + production build into web/dist
 ```

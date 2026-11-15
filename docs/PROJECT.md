@@ -1,7 +1,7 @@
 # CERES Field Time Machine: the complete project document
 
 **Team:** CERES · **Event:** NASA Space Apps Challenge 2026 · **Challenge:** *Field Shift: Adapting Farms with NASA Data*
-**Live app:** https://salapa0.github.io/demeter-fieldshift/ · **Code:** https://github.com/salapa0/demeter-fieldshift (MIT licence)
+**Live app:** https://salapa0.github.io/ceres-fieldshift/ · **Code:** https://github.com/salapa0/ceres-fieldshift (MIT licence)
 **State of this document:** written Sun 15 Nov 2026, early afternoon Thailand time, from `main` at pull request 9.
 Every number in it was measured on the code and data in the repository at that point.
 

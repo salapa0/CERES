@@ -3,8 +3,8 @@
 Text to paste into the project page, a script for the 2-minute video, and a final checklist.
 Everything here matches what the live app does on 15 Nov 2026. Edit freely; keep the limits honest.
 
-- **Live demo:** https://salapa0.github.io/demeter-fieldshift/
-- **Code:** https://github.com/salapa0/demeter-fieldshift
+- **Live demo:** https://salapa0.github.io/ceres-fieldshift/
+- **Code:** https://github.com/salapa0/ceres-fieldshift
 - **Challenge:** Field Shift: Adapting Farms with NASA Data
 
 ## One-line summary

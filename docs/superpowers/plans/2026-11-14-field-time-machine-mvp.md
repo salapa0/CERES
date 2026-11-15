@@ -10,12 +10,12 @@
 
 **Spec:** `docs/superpowers/specs/2026-11-14-field-time-machine-design.md` (the "blueprint"). Section numbers below (§) refer to it. Read §0–§5 before your lane.
 
-**Supersedes:** `docs/superpowers/plans/2026-11-14-demeter-fieldshift.md` (old Streamlit plan; ignore it).
+**Supersedes:** `docs/superpowers/plans/2026-11-14-ceres-fieldshift.md` (old Streamlit plan; ignore it).
 
 ## Global Constraints
 
 - Deadline: MVP live by **Sun 15 Nov 2026 ~12:00**; final submit by **20:00** Thailand time.
-- Hosting: GitHub Pages, static only; Vite `base` = `/demeter-fieldshift/`.
+- Hosting: GitHub Pages, static only; Vite `base` = `/ceres-fieldshift/`.
 - Thai is the default language; every UI string lives in `web/src/i18n/th.json` and `en.json`. Thai mode shows Buddhist Era years (CE + 543); season 2015 → `2558/59`.
 - Every number on screen names its source and resolution (§2 G2).
 - The replay engine exists only in TypeScript under `web/src/engine/`; Python never computes outcomes.
@@ -55,7 +55,7 @@
 ### Task S2: Scaffold, contracts and live Pages (M1)
 
 **Files:**
-- Create: `LICENSE` (MIT, holder "CERES team"), `web/` (Vite React TS), `web/vite.config.ts`, `web/tailwind.config.ts`, `web/src/main.tsx`, `web/src/App.tsx`, `web/src/i18n/th.json`, `web/src/i18n/en.json`, `web/src/styles/tokens.css`, `web/src/engine/types.ts`, `web/src/engine/index.ts`, `web/src/engine/constants.ts`, `web/public/data/sample/cell.json`, `web/public/data/sample/grid.json`, `web/public/data/sample/current.json`, `web/src/App.test.tsx`, `pipeline/pyproject.toml`, `pipeline/demeter_pipeline/__init__.py`, `pipeline/tests/test_smoke.py`, `.github/workflows/deploy.yml`
+- Create: `LICENSE` (MIT, holder "CERES team"), `web/` (Vite React TS), `web/vite.config.ts`, `web/tailwind.config.ts`, `web/src/main.tsx`, `web/src/App.tsx`, `web/src/i18n/th.json`, `web/src/i18n/en.json`, `web/src/styles/tokens.css`, `web/src/engine/types.ts`, `web/src/engine/index.ts`, `web/src/engine/constants.ts`, `web/public/data/sample/cell.json`, `web/public/data/sample/grid.json`, `web/public/data/sample/current.json`, `web/src/App.test.tsx`, `pipeline/pyproject.toml`, `pipeline/ceres_pipeline/__init__.py`, `pipeline/tests/test_smoke.py`, `.github/workflows/deploy.yml`
 
 **Interfaces (frozen after this task; lanes import these exactly):**
 - Produces `web/src/engine/types.ts`:
@@ -87,12 +87,12 @@ export interface BadgeResult { level: 'high' | 'medium' | 'low'; reasons: string
 - [ ] **Step 1:** Scaffold `web/` with `npm create vite@latest web -- --template react-ts`, add Tailwind, MapLibre GL, react-router-dom, `@turf/boolean-point-in-polygon`, Vitest, `@testing-library/react`, jsdom. Add Noto Sans Thai and Noto Serif Thai from Google Fonts in `index.html`. Put the §11.1 colour tokens in `tokens.css`.
 - [ ] **Step 2:** Write `App.test.tsx`: `renders Thai header by default` → `expect(screen.getByRole('heading', { level: 1 })).toHaveTextContent('CERES')` and the subtitle from `th.json` key `app.subtitle` = `ไทม์แมชชีนแปลงนา`.
 - [ ] **Step 3:** Run `npm --prefix web test -- --run` → FAIL. Implement `App.tsx` with a `HashRouter` and the header. Run → PASS.
-- [ ] **Step 4:** Create `pipeline/pyproject.toml` (package `demeter_pipeline`, Python ≥ 3.11, deps from Tech Stack, `dev` extra with pytest) and `test_smoke.py` (`import demeter_pipeline`). Run `cd pipeline && pip install -e ".[dev]" && pytest -q` → 1 passed.
+- [ ] **Step 4:** Create `pipeline/pyproject.toml` (package `ceres_pipeline`, Python ≥ 3.11, deps from Tech Stack, `dev` extra with pytest) and `test_smoke.py` (`import ceres_pipeline`). Run `cd pipeline && pip install -e ".[dev]" && pytest -q` → 1 passed.
 - [ ] **Step 5:** Write `types.ts`, the `index.ts` stubs, `constants.ts` and the three sample files. Run `npx --prefix web tsc --noEmit -p web` → no errors.
 - [ ] **Step 6:** Write `deploy.yml`: `on: [push, workflow_call, workflow_dispatch]`; jobs: test (pytest + `npm test -- --run`), build (`npm run build` in `web`), deploy with `actions/upload-pages-artifact` + `actions/deploy-pages`; permissions `pages: write, id-token: write, contents: read`. Deploy only from `main`.
-- [ ] **Step 7:** Enable Pages: `gh api -X POST repos/salapa0/demeter-fieldshift/pages -f build_type=workflow` (ignore "already exists").
+- [ ] **Step 7:** Enable Pages: `gh api -X POST repos/salapa0/ceres-fieldshift/pages -f build_type=workflow` (ignore "already exists").
 - [ ] **Step 8:** Commit `Scaffold web app, pipeline, contracts and Pages deploy`, push `main`.
-- [ ] **Step 9:** Verify: `gh run watch` shows the deploy succeeding, and `curl -s https://salapa0.github.io/demeter-fieldshift/ | grep -c CERES` prints ≥ 1.
+- [ ] **Step 9:** Verify: `gh run watch` shows the deploy succeeding, and `curl -s https://salapa0.github.io/ceres-fieldshift/ | grep -c CERES` prints ≥ 1.
 - [ ] **Step 10:** Tell the human: add repo secrets `EARTHDATA_USERNAME` / `EARTHDATA_PASSWORD` (needed from P1). Then start the three lane sessions from `main`.
 
 ---
@@ -103,7 +103,7 @@ Owns: `pipeline/`, `.github/workflows/data-*.yml`, `web/public/data/` (except `s
 
 ### Task P1: Thailand grid
 
-**Files:** Create `pipeline/demeter_pipeline/grid.py`, `pipeline/demeter_pipeline/data/thailand.geojson`; Test `pipeline/tests/test_grid.py`
+**Files:** Create `pipeline/ceres_pipeline/grid.py`, `pipeline/ceres_pipeline/data/thailand.geojson`; Test `pipeline/tests/test_grid.py`
 
 **Interfaces:**
 - Produces: `@dataclass(frozen=True) class Cell: id: str; lat: float; lon: float`; `snap(lat: float, lon: float) -> tuple[float, float]`; `cell_id(lat: float, lon: float) -> str`; `thailand_polygon() -> shapely.geometry.base.BaseGeometry`; `thai_cells() -> list[Cell]` (sorted by id).
@@ -119,7 +119,7 @@ Owns: `pipeline/`, `.github/workflows/data-*.yml`, `web/public/data/` (except `s
 
 ### Task P2: NASA POWER client
 
-**Files:** Create `pipeline/demeter_pipeline/power.py`; Test `pipeline/tests/test_power.py`
+**Files:** Create `pipeline/ceres_pipeline/power.py`; Test `pipeline/tests/test_power.py`
 
 **Interfaces:**
 - Produces: `class PowerError(Exception)`; `fetch_daily(lat: float, lon: float, start: date, end: date, session: requests.Session | None = None) -> pd.DataFrame` with a daily `DatetimeIndex` and float columns `rain, tmax, tmin, wetness` (from `PRECTOTCORR, T2M_MAX, T2M_MIN, GWETROOT`); -999 → NaN. Three tries with back-off 2, 4, 8 s, then `PowerError`.
@@ -130,7 +130,7 @@ Owns: `pipeline/`, `.github/workflows/data-*.yml`, `web/public/data/` (except `s
 
 ### Task P3: Season slicing
 
-**Files:** Create `pipeline/demeter_pipeline/seasons.py`; Test `pipeline/tests/test_seasons.py`
+**Files:** Create `pipeline/ceres_pipeline/seasons.py`; Test `pipeline/tests/test_seasons.py`
 
 **Interfaces:**
 - Consumes: `fetch_daily` DataFrame.
@@ -142,15 +142,15 @@ Owns: `pipeline/`, `.github/workflows/data-*.yml`, `web/public/data/` (except `s
 
 ### Task P4: History build and workflow
 
-**Files:** Create `pipeline/demeter_pipeline/build_history.py`, `.github/workflows/data-history.yml`; Test `pipeline/tests/test_build_history.py`
+**Files:** Create `pipeline/ceres_pipeline/build_history.py`, `.github/workflows/data-history.yml`; Test `pipeline/tests/test_build_history.py`
 
 **Interfaces:**
 - Consumes: P1–P3.
-- Produces: `build_cell(cell: Cell, df: pd.DataFrame, first: int, last: int) -> dict` (§8 cell JSON, `sources` with `rain`, `temp`, `wetness` strings exactly as §8); `main(out_dir: Path, today: date, limit: int | None = None) -> None` writing `out_dir/grid.json`, `out_dir/thailand.geojson`, `out_dir/cells/{id}.json` (fetch range `date(first, 8, 1)` → `date(last + 1, 7, 31)`, 1 s pause between cells, a failed cell is logged and skipped, never aborts the run). CLI: `python -m demeter_pipeline.build_history --out ../web/public/data [--limit N]`.
+- Produces: `build_cell(cell: Cell, df: pd.DataFrame, first: int, last: int) -> dict` (§8 cell JSON, `sources` with `rain`, `temp`, `wetness` strings exactly as §8); `main(out_dir: Path, today: date, limit: int | None = None) -> None` writing `out_dir/grid.json`, `out_dir/thailand.geojson`, `out_dir/cells/{id}.json` (fetch range `date(first, 8, 1)` → `date(last + 1, 7, 31)`, 1 s pause between cells, a failed cell is logged and skipped, never aborts the run). CLI: `python -m ceres_pipeline.build_history --out ../web/public/data [--limit N]`.
 
 - [ ] **Step 1:** Tests: `test_build_cell_matches_contract` (keys `id, lat, lon, sources, wetnessScale, seasons`; every season has equal-length arrays); `test_cell_file_under_300kb` (25 synthetic seasons of realistic values → `len(json.dumps(cell)) < 300_000`); `test_main_skips_failed_cell` (fetch patched to raise `PowerError` for one of two cells → one cell file written, grid still lists both).
 - [ ] **Step 2:** Run → FAIL. Implement. Run → PASS.
-- [ ] **Step 3:** Local check: `python -m demeter_pipeline.build_history --out /tmp/demeter --limit 1` → one cell file whose first season is 2001.
+- [ ] **Step 3:** Local check: `python -m ceres_pipeline.build_history --out /tmp/ceres --limit 1` → one cell file whose first season is 2001.
 - [ ] **Step 4:** Write `data-history.yml`: `on: workflow_dispatch` and `schedule: cron '0 2 5 8 *'`; run the build into `web/public/data`, commit with `[data]` subject prefix, push, then `uses: ./.github/workflows/deploy.yml`. Permissions `contents: write`.
 - [ ] **Step 5:** Commit `Add history build and data workflow`; push `lane/pipeline`; run the workflow on the branch with `gh workflow run data-history.yml --ref lane/pipeline`.
 - [ ] **Step 6:** Verify: the run commits `web/public/data/cells/16.50_102.500.json`; `grid.json` cell count equals the P1 test count.
@@ -213,7 +213,7 @@ Owns: `web/src/components/`, `web/src/pages/`, `web/src/lib/`, `web/src/i18n/`, 
 
 **Files:** Create `web/src/lib/i18n.tsx`, `web/src/lib/format.ts`, `web/src/components/LangToggle.tsx`, `web/src/components/SourcesFooter.tsx`; Test `web/src/lib/format.test.ts`, `web/src/components/LangToggle.test.tsx`
 
-**Interfaces:** Produces `I18nProvider`, `useT(): { t: (key: string, vars?: Record<string, string | number>) => string; lang: 'th' | 'en'; setLang(l: 'th' | 'en'): void }` (choice saved in `localStorage` key `demeter.lang`, wrapped in try/catch, default `th`); `formatSeason(year: number, lang): string` (`2015 → '2558/59'` th, `'2015/16'` en); `formatDate(d: Date, lang): string` (th: `28 ม.ค. 2559`, en: `28 Jan 2016`); `SourcesFooter({ sources }: { sources: Record<string, string> })`.
+**Interfaces:** Produces `I18nProvider`, `useT(): { t: (key: string, vars?: Record<string, string | number>) => string; lang: 'th' | 'en'; setLang(l: 'th' | 'en'): void }` (choice saved in `localStorage` key `ceres.lang`, wrapped in try/catch, default `th`); `formatSeason(year: number, lang): string` (`2015 → '2558/59'` th, `'2015/16'` en); `formatDate(d: Date, lang): string` (th: `28 ม.ค. 2559`, en: `28 Jan 2016`); `SourcesFooter({ sources }: { sources: Record<string, string> })`.
 
 - [ ] **Step 1:** Tests: the two `formatSeason` cases; `formatDate(new Date(2016, 0, 28), 'th') === '28 ม.ค. 2559'`; `formatDate(..., 'en') === '28 Jan 2016'`; `toggle switches heading subtitle to English` (`app.subtitle` en = `Field Time Machine`).
 - [ ] **Step 2:** Run → FAIL. Implement. Run → PASS. Commit `Add Thai/English i18n and formatters`.
@@ -265,7 +265,7 @@ Owns: `web/src/components/`, `web/src/pages/`, `web/src/lib/`, `web/src/i18n/`, 
 - [ ] **Step 3:** `npm --prefix web run dev`, open `#/field?lat=16.44&lon=102.83`: three cards, four rows, at least 20 season columns. Science sanity check (§14): mung bean `good` ≥ maize `good`. If not, record numbers in `docs/decisions.md` and inspect `crops.json` and constants before changing anything else.
 - [ ] **Step 4:** Update `README.md`: what it does, live link, NASA data used with resolution and limits (§16), how to run (`web`, `pipeline`), AI-use statement, licence, "Not affiliated with or endorsed by NASA".
 - [ ] **Step 5:** Commit `Wire MVP and update README`; push `main`; `gh run watch` → deploy succeeds.
-- [ ] **Step 6:** Verify on a phone (or 360 px emulation) at `https://salapa0.github.io/demeter-fieldshift/#/field?lat=16.44&lon=102.83`: results within 3 s, numbers equal to the dev run. Tap the sea → outside message.
+- [ ] **Step 6:** Verify on a phone (or 360 px emulation) at `https://salapa0.github.io/ceres-fieldshift/#/field?lat=16.44&lon=102.83`: results within 3 s, numbers equal to the dev run. Tap the sea → outside message.
 - [ ] **Step 7:** `git tag v0.1-mvp && git push origin v0.1-mvp`.
 
 ---

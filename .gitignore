@@ -1,0 +1,24 @@
+__pycache__/
+*.py[cod]
+*.egg-info/
+.venv/
+venv/
+.pytest_cache/
+.ruff_cache/
+.mypy_cache/
+.env
+.streamlit/secrets.toml
+.netrc
+data/cache/
+.DS_Store
+Thumbs.db
+
+# Web app
+node_modules/
+web/dist/
+pipeline/build.log
+.superpowers/
+
+# Built by the deploy workflow with the Earthdata secret (pipeline/build_imerg.py, build_smap.py); never committed
+web/public/data/imerg/
+web/public/data/smap/

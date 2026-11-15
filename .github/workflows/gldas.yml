@@ -1,0 +1,35 @@
+# One-off: adds GLDAS root-zone moisture to the past-season cell files. Past seasons do not change, so the result is
+# committed to the repo and this runs again only by hand (for example after adding a season).
+name: GLDAS history
+on:
+  workflow_dispatch:
+  push:
+    branches: [build/selfcheck-smap]
+    paths: ['.github/workflows/gldas.yml', 'pipeline/build_gldas.py']
+permissions:
+  contents: read
+jobs:
+  gldas:
+    runs-on: ubuntu-latest
+    timeout-minutes: 120
+    strategy:
+      fail-fast: false
+      matrix:
+        shard: [0, 1, 2, 3, 4, 5]
+    steps:
+      - uses: actions/checkout@v4
+      - run: python3 -m unittest test_build_gldas
+        working-directory: pipeline
+      - name: Fetch GLDAS root zone
+        env:
+          EARTHDATA_TOKEN: ${{ secrets.EARTHDATA_TOKEN }}
+        run: python3 pipeline/build_gldas.py --shard ${{ matrix.shard }}/6
+      - name: List changed cells
+        if: always()
+        run: git diff --name-only -- web/public/data/cells > changed.txt; wc -l changed.txt
+      - uses: actions/upload-artifact@v4
+        if: always()
+        with:
+          name: cells-${{ matrix.shard }}
+          path: web/public/data/cells/*.json
+          retention-days: 3

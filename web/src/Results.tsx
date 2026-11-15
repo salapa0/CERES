@@ -8,10 +8,10 @@ import type { ImergCell, SmapCell } from './data';
 import { incomeEstimate, type IncomeEstimate } from './engine/income';
 import { analogOdds, findAnalogs, type Analog, type CurrentSeason } from './engine/analog';
 import { DEFAULT_POSITION, DEFAULT_SOIL, DEFAULT_SOW, IRRIGATION_MM, WATERINGS_SEARCH_MAX } from './engine/constants';
-import { recommend, type Recommendation } from './engine/recommend';
+import { dangerMonth, monthOdds, recommend, type DangerMonth, type MonthOdds, type Recommendation } from './engine/recommend';
 import { describeWhatIf, FieldSettings, REAL } from './FieldSettings';
 import { badge, selfCheck, type SelfCheck } from './engine/selfcheck';
-import { formatDate, formatMonthDay, formatSeason, t, type Key, type Lang } from './i18n';
+import { formatDate, formatMonthDay, formatSeason, monthName, t, type Key, type Lang } from './i18n';
 import { IconClose, IconHistory, IconLeaf, IconPin } from './icons';
 import type { Settings } from './share';
 
@@ -105,6 +105,8 @@ export function Results({ cell, lang, current, today = new Date(), initial = {},
         income={shownCrop ? incomes[shownCrop.id] : null} window={shownCrop ? windows[shownCrop.id] : undefined}
         analog={shownCrop && analogs.length ? analogOdds(timeline[shownCrop.id], cell.seasons, analogs) : null}
         need={shownCrop ? needs[shownCrop.id] : undefined} waterings={waterings} hitRate={hitRate}
+        months={shownCrop && windows[shownCrop.id] ? monthOdds(windows[shownCrop.id]) : null}
+        danger={shownCrop ? dangerMonth(timeline[shownCrop.id] ?? [], cell.seasons) : null}
         whatIfDesc={whatIfDesc} lang={lang} today={today} />
 
       <YearChart cell={cell} crops={crops} timeline={timeline} analogs={analogs} shown={shown} recId={rec.cropId}
@@ -366,10 +368,10 @@ function CropPicker({ crops, shown, rec, oddsOf, incomes, lang, onPick }: {
 }
 
 /** Everything about the picked crop, income first; `crop` null is "leave the field bare". */
-function CropDetail({ crop, o, isRec, income, window, analog, need, waterings, hitRate, whatIfDesc, lang, today }: {
+function CropDetail({ crop, o, isRec, income, window, analog, need, waterings, hitRate, months, danger, whatIfDesc, lang, today }: {
   crop: Crop | null; o: OddsResult | null; isRec: boolean; income: IncomeEstimate | null; window?: SowingWindow;
-  analog: OddsResult | null; need?: number | null; waterings: number; hitRate: number | null; whatIfDesc: string | null;
-  lang: Lang; today: Date;
+  analog: OddsResult | null; need?: number | null; waterings: number; hitRate: number | null;
+  months?: MonthOdds[] | null; danger?: DangerMonth | null; whatIfDesc: string | null; lang: Lang; today: Date;
 }) {
   const T: Tr = (key, vars) => t(lang, key, vars);
   if (!crop) {
@@ -418,6 +420,17 @@ function CropDetail({ crop, o, isRec, income, window, analog, need, waterings, h
         </p>
       )}
       {window && <WindowInfo w={window} lang={lang} today={today} />}
+      {months && months.length > 0 && (
+        <p className="month-odds" data-testid="month-odds">
+          <span className="month-label">{T('month.title')}:</span>{' '}
+          {months.map((m) => `${monthName(m.month, lang)} ${m.total ? `${m.good}/${m.total}` : '–'}`).join(' · ')}
+        </p>
+      )}
+      {danger && (
+        <p className="danger-month" data-testid="danger-month">
+          {T('month.danger', { month: monthName(danger.month, lang), count: danger.count, failed: danger.failed })}
+        </p>
+      )}
       <p className={`effect effect-${crop.soilEffect}`}><IconLeaf />{T(`effect.${crop.soilEffect}`)}</p>
       <details className="more">
         <summary>{T('card.more')}</summary>

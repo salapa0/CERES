@@ -33,6 +33,8 @@ const TH = {
   'fallow.body': 'ไม่เสี่ยงขาดทุน แต่ไม่มีรายได้ฤดูแล้ง',
   'income.noPrice': 'ยังไม่มีราคาอ้างอิง: เราไม่พบราคาที่เกษตรกรขายได้จากแหล่งทางการ จึงยังไม่คิดรายได้',
   'timeline.all': 'ดูทุกพืช', 'timeline.fewer': 'ดูเฉพาะพืชที่เลือก',
+  'month.title': 'ปลูกเดือนไหน รอดกี่ปี',
+  'month.danger': 'ปีที่ไม่รอด ส่วนใหญ่ตายช่วง {month} ({count} จาก {failed} ปี)',
   'summary.whatIf': 'ผลนี้ใช้สภาพอากาศแบบสมมติ',
   'card.more': 'ดูเพิ่มเติม',
   'app.tagline': 'หลังเกี่ยวข้าว ปลูกอะไรต่อดี? แตะที่นาของคุณบนแผนที่',
@@ -208,6 +210,8 @@ const EN: Record<keyof typeof TH, string> = {
   'fallow.body': 'No risk of loss, but no dry-season income',
   'income.noPrice': 'No reference price yet: we found no official farm-gate price, so income is not estimated',
   'timeline.all': 'Show all crops', 'timeline.fewer': 'Show fewer crops',
+  'month.title': 'Years survived by sowing month',
+  'month.danger': 'In the years it failed, it most often died in {month} ({count} of {failed} years)',
   'summary.whatIf': 'Based on what-if weather, not the real record.',
   'card.more': 'More',
   'app.tagline': 'What to plant after the rice harvest? Tap your field on the map',
@@ -369,6 +373,20 @@ export function formatSeason(year: number, lang: Lang): string {
 export function formatDate(d: Date, lang: Lang): string {
   const months = lang === 'th' ? TH_MONTHS : EN_MONTHS;
   return `${d.getUTCDate()} ${months[d.getUTCMonth()]} ${d.getUTCFullYear() + (lang === 'th' ? BE : 0)}`;
+}
+
+/** Month 1–12 → 'ธ.ค.' / 'Dec'. */
+export function monthName(month: number, lang: Lang): string {
+  return (lang === 'th' ? TH_MONTHS : EN_MONTHS)[month - 1];
+}
+
+/** Sowing dates as farmers say them: '12-01' → 'ต้น ธ.ค.' / 'early Dec', '12-15' → 'กลาง ธ.ค.' / 'mid Dec'. */
+export function formatSowMonth(monthDay: string, lang: Lang, capital = false): string {
+  const [m, d] = monthDay.split('-').map(Number);
+  if (d !== 1 && d !== 15) return formatMonthDay(monthDay, lang);
+  if (lang === 'th') return `${d === 1 ? 'ต้น' : 'กลาง'} ${TH_MONTHS[m - 1]}`;
+  const part = d === 1 ? 'early' : 'mid';
+  return `${capital ? part[0].toUpperCase() + part.slice(1) : part} ${EN_MONTHS[m - 1]}`;
 }
 
 export function formatMonthDay(monthDay: string, lang: Lang): string {

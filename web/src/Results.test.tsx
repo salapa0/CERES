@@ -103,7 +103,7 @@ it('starts from settings in a shared link and reports each change so the link ca
   const seen: unknown[] = [];
   render(<Results cell={cell([season(2015, 5, 0.8)])} lang="en"
     initial={{ sow: '12-01', soil: 'sandyLoam', position: 'upland', waterings: 2 }} onSettings={(s) => seen.push(s)} />);
-  expect(screen.getByTestId('settings-summary')).toHaveTextContent('Sow 1 Dec · Sandy loam · Upland · Water 2 times');
+  expect(screen.getByTestId('settings-summary')).toHaveTextContent('Sow early Dec · Sandy loam · Upland · Water 2 times');
   fireEvent.click(screen.getByRole('button', { name: 'Change' }));
   expect(screen.getByRole('radio', { name: 'Sandy loam' })).toBeChecked();
   expect(screen.getByRole('radio', { name: /^2 times/ })).toBeChecked();
@@ -232,7 +232,7 @@ test('no satellite line without IMERG data', () => {
 test('the settings the answer depends on come before the answer, as a summary that opens into tap choices', () => {
   render(<Results cell={cell([season(2015, 5, 0.8)])} lang="th" />);
   const summary = screen.getByTestId('settings-summary');
-  expect(summary).toHaveTextContent('ปลูก 15 พ.ย. · ดินทรายปนร่วน · นาลุ่ม · ไม่รดน้ำ');
+  expect(summary).toHaveTextContent('ปลูก กลาง พ.ย. · ดินทรายปนร่วน · นาลุ่ม · ไม่รดน้ำ');
   expect(summary.compareDocumentPosition(screen.getByTestId('summary')) & Node.DOCUMENT_POSITION_FOLLOWING).toBeTruthy();
   const change = screen.getByRole('button', { name: 'เปลี่ยน' });
   expect(change).toHaveAttribute('aria-expanded', 'false');
@@ -289,4 +289,24 @@ test('timeline years are buttons named by season and outcome, drawn with the sam
   const year = screen.getAllByRole('button', { name: '2015/16: Failed' })[0];
   expect(year.querySelector('.mark.failed')).not.toBeNull();
   expect(screen.queryByText('✖')).toBeNull();
+});
+
+test('sowing dates read as early or mid month, the way farmers say them', () => {
+  render(<Results cell={cell([season(2015, 5, 0.8)])} lang="th" />);
+  expect(screen.getByTestId('settings-summary')).toHaveTextContent('ปลูก กลาง พ.ย.');
+  fireEvent.click(screen.getByRole('button', { name: 'เปลี่ยน' }));
+  expect(screen.getByRole('radio', { name: 'ต้น ธ.ค.' })).toBeInTheDocument();
+  expect(screen.getByRole('radio', { name: 'กลาง ม.ค.' })).toBeInTheDocument();
+});
+
+test('the picked crop shows years survived by sowing month, and the month failed crops died in', () => {
+  render(<Results cell={cell([season(2015, 0, 0.3), season(2016, 0, 0.3)])} lang="en" />);
+  expect(screen.getByTestId('month-odds')).toHaveTextContent(/Nov 0\/2.*Dec 0\/2.*Jan 0\/2/);
+  expect(screen.getByTestId('danger-month')).toHaveTextContent(/most often died in (Nov|Dec|Jan|Feb|Mar) \(2 of 2 years\)/);
+});
+
+test('a crop that never failed has no danger-month line', () => {
+  render(<Results cell={cell([season(2015, 5, 0.8), season(2016, 5, 0.8)])} lang="en" />);
+  expect(screen.getByTestId('month-odds')).toHaveTextContent(/Nov 2\/2/);
+  expect(screen.queryByTestId('danger-month')).toBeNull();
 });

@@ -1,7 +1,7 @@
 import { useId, useState } from 'react';
 import type { FieldPosition, SoilTexture, WhatIf } from './engine';
 import { IRRIGATION_MM, SOIL_TEXTURES } from './engine/constants';
-import { formatMonthDay, t, type Key, type Lang } from './i18n';
+import { formatSowMonth, t, type Key, type Lang } from './i18n';
 import { SOW_DATES, WATERING_CHOICES, type Settings } from './share';
 
 const POSITIONS: FieldPosition[] = ['lowland', 'upland'];
@@ -33,7 +33,7 @@ export function FieldSettings({ value, onChange, weather, onWeather, lang }: {
   const set = (patch: Partial<Settings>) => onChange({ ...value, ...patch });
   const rainPct = Math.round((weather.rainFactor - 1) * 100);
   const summary = [
-    T('settings.sow', { date: formatMonthDay(value.sow, lang) }),
+    T('settings.sow', { date: formatSowMonth(value.sow, lang) }),
     T(`soil.${value.soil}`),
     T(`position.${value.position}.short`),
     value.waterings ? T('settings.waterN', { n: value.waterings }) : T('settings.water0'),
@@ -65,7 +65,7 @@ export function FieldSettings({ value, onChange, weather, onWeather, lang }: {
             }))}
             onPick={(n) => set({ waterings: Number(n) })} />
           <Choices legend={T('input.sow')} hint={T('hint.sow')} name="sow" value={value.sow}
-            options={SOW_DATES.map((d) => ({ value: d, label: formatMonthDay(d, lang) }))}
+            options={SOW_DATES.map((d) => ({ value: d, label: formatSowMonth(d, lang, true) }))}
             onPick={(sow) => set({ sow })} />
           <div className="weather-set">
             <h3 className="weather-title">{T('whatif.title')}</h3>

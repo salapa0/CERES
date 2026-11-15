@@ -232,6 +232,9 @@ main {
 .window-date { font-weight: 700; font-size: var(--fs-small); }
 .window .left { color: var(--sprout-ink); }
 .window .late { color: var(--clay-ink); }
+.month-odds { font-size: var(--fs-small); color: var(--ink); font-variant-numeric: tabular-nums; }
+.month-label { font-weight: 700; }
+.danger-month { font-size: var(--fs-small); font-weight: 700; color: var(--clay-ink); }
 .window-chart { display: flex; flex-direction: column; gap: 4px; margin: 4px 0 6px; }
 .window-bars { display: flex; align-items: flex-end; gap: 3px; height: 42px; }
 .window-bars .bar { flex: 1; min-height: 3px; background: #BCD9C3; border-radius: 4px 4px 1px 1px; }

@@ -7,6 +7,9 @@
 NASA Space Apps Challenge 2026, challenge *Field Shift: Adapting Farms with NASA Data*.
 Submission deadline: Sunday 15 Nov 2026, 23:59 local time (team target: 20:00).
 
+**Full project document:** [docs/PROJECT.md](docs/PROJECT.md) covers the idea, the science, the NASA data, the
+architecture, the interface, how it was built, the results, the limits and how it answers the challenge.
+
 ## What it does
 
 Most rain-fed rice fields in Isan (northeast Thailand) sit empty after the wet-season harvest. The Field Time Machine

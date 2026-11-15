@@ -69,7 +69,7 @@ Code and documentation were written with an AI coding assistant (Claude, by Anth
 | 0:00–0:15 | Satellite map of northeast Thailand | "After the rice harvest, most rain-fed fields here sit bare for months. Planting again is a gamble on water nobody can see." |
 | 0:15–0:35 | Tap a field near Khon Kaen; the summary appears | "DEMETER replays 25 dry seasons of NASA data for this field. The answer comes first: on leftover moisture alone, this is risky." |
 | 0:35–0:55 | The three cards | "Three strategies, including what the farmer does today. Each shows how many seasons the crop survived, and what it does for the soil." |
-| 0:55–1:15 | Set "Times you can water" to 2 | "The farmer has a small pond: two waterings. Sunn hemp, a green manure that feeds the soil, now survives 20 years in 25." |
+| 0:55–1:15 | Set "Times you can water" to 2 | "The farmer has a small pond: two waterings. Sunn hemp, a green manure that feeds the soil, goes from 11 to 22 years in 25." |
 | 1:15–1:35 | Timeline; tap a failed year, show the chart | "Every icon is a real season. Tap one to see the soil drying and the day the crop would have died." |
 | 1:35–1:50 | Look-alike line; what-if sliders | "It matches this season to the most similar past years, and lets you test a drier or hotter future." |
 | 1:50–2:00 | About page, limits | "It is honest about what it cannot see, and it works for any field in Thailand, in Thai and English." |

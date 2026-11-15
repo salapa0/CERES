@@ -3,9 +3,6 @@
 name: GLDAS history
 on:
   workflow_dispatch:
-  push:
-    branches: [build/selfcheck-smap]
-    paths: ['.github/workflows/gldas.yml', 'pipeline/build_gldas.py']
 permissions:
   contents: read
 jobs:

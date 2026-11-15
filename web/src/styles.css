@@ -155,6 +155,7 @@ select:hover { border-color: #B9C7D8; }
 .analog-line .muted { color: var(--accent-ink); opacity: .8; }
 .analog-line.is-quiet { background: var(--soft); color: var(--muted); }
 .analog-line svg { flex-shrink: 0; margin-top: 2px; }
+.selfcheck { margin-top: 10px; color: var(--muted); font-size: var(--fs-small); }
 
 .section-label { font-size: 20px; letter-spacing: -.3px; }
 .cards { display: grid; grid-template-columns: repeat(3, minmax(0, 1fr)); gap: 14px; align-items: start; }

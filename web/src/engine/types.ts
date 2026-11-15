@@ -7,6 +7,7 @@ export interface SeasonData {
   tmax: Num[];
   tmin: Num[];
   wetness: Num[];
+  rootzone?: Num[]; // GLDAS root-zone soil moisture, kg/m² (self-check only)
 }
 
 export interface CellData {

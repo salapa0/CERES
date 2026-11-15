@@ -4,17 +4,17 @@ import {
   type CellData, type Crop, type FieldPosition, type OddsResult, type Outcome, type SeasonData, type SoilTexture,
   type SowingWindow, type Strategy, type WhatIf,
 } from './engine';
-import type { ImergCell } from './data';
+import type { ImergCell, SmapCell } from './data';
 import { incomeEstimate, type IncomeEstimate } from './engine/income';
-import { analogOdds, analogsSplit, findAnalogs, type Analog, type CurrentSeason } from './engine/analog';
+import { analogOdds, findAnalogs, type Analog, type CurrentSeason } from './engine/analog';
 import { DEFAULT_POSITION, DEFAULT_SOIL, DEFAULT_SOW, IRRIGATION_MM, SOIL_TEXTURES, WATERINGS_SEARCH_MAX } from './engine/constants';
+import { badge, selfCheck, type SelfCheck } from './engine/selfcheck';
 import { formatDate, formatMonthDay, formatSeason, t, type Key, type Lang } from './i18n';
 import { IconClose, IconHistory, IconLeaf, IconPin } from './icons';
 import { SOW_DATES, WATERING_CHOICES, type Settings } from './share';
 
 const ICON: Record<Outcome['kind'], string> = { good: '🌱', poor: '🍂', failed: '✖', nodata: '·' };
 const KINDS: Outcome['kind'][] = ['good', 'poor', 'failed', 'nodata'];
-const MIN_SEASONS_FOR_MEDIUM = 15;
 const REAL: WhatIf = { rainFactor: 1, dT: 0 };
 
 /** Live data for the season under way: still loading, failed, or loaded. */
@@ -29,8 +29,8 @@ function tone(odds: OddsResult | null): 'good' | 'mid' | 'low' | 'none' {
   return share >= 0.6 ? 'good' : share >= 0.3 ? 'mid' : 'low';
 }
 
-export function Results({ cell, lang, current, today = new Date(), initial = {}, onSettings, imerg }: {
-  cell: CellData; lang: Lang; current?: CurrentState; today?: Date; imerg?: ImergCell | null;
+export function Results({ cell, lang, current, today = new Date(), initial = {}, onSettings, imerg, smap }: {
+  cell: CellData; lang: Lang; current?: CurrentState; today?: Date; imerg?: ImergCell | null; smap?: SmapCell | null;
   initial?: Partial<Settings>; onSettings?: (s: Settings) => void;
 }) {
   const crops = useMemo(loadCrops, []);
@@ -58,6 +58,12 @@ export function Results({ cell, lang, current, today = new Date(), initial = {},
     crops.map((c) => [c.id, waterNeeded(cell, c, sow, soil, position, whatIf)])), [cell, crops, sow, soil, position, whatIf]);
   const analogs = useMemo(
     () => (current && typeof current === 'object' ? findAnalogs(cell.seasons, current) : []), [cell, current]);
+  // The self-check uses mung bean at the default sowing date on the farmer's soil (blueprint §9.8).
+  const check = useMemo(() => {
+    const mung = crops.find((c) => c.id === 'mungbean');
+    return mung ? selfCheck(cell, mung, soil, position) : null;
+  }, [cell, crops, soil, position]);
+  const hitRate = check && check.total > 0 ? check.agree / check.total : null;
   const name = (c: Crop) => (lang === 'th' ? c.nameTh : c.nameEn);
   const T: Tr = (key, vars) => t(lang, key, vars);
   const whatIfDesc = describeWhatIf(whatIf, lang);
@@ -76,6 +82,7 @@ export function Results({ cell, lang, current, today = new Date(), initial = {},
         needs={needs} waterings={waterings} />
       <AnalogLine current={current} analogs={analogs} lang={lang} />
       <SatelliteRain current={current} imerg={imerg} lang={lang} />
+      <SoilNow smap={smap} lang={lang} />
 
       <div className="card inputs">
         <label>{T('input.sow')}
@@ -110,7 +117,7 @@ export function Results({ cell, lang, current, today = new Date(), initial = {},
             analog={s.cropId && analogs.length ? analogOdds(timeline[s.cropId], cell.seasons, analogs) : null}
             need={s.cropId ? needs[s.cropId] : undefined} waterings={waterings}
             income={s.cropId ? incomeEstimate(timeline[s.cropId] ?? [], crops.find((c) => c.id === s.cropId)?.market) : null}
-            whatIfDesc={whatIfDesc} />
+            hitRate={hitRate} whatIfDesc={whatIfDesc} />
         ))}
       </div>
 
@@ -161,6 +168,7 @@ export function Results({ cell, lang, current, today = new Date(), initial = {},
             </tbody>
           </table>
         </div>
+        <SelfCheckLine check={check} lang={lang} />
       </section>
 
       {open && (
@@ -200,6 +208,31 @@ function AnalogLine({ current, analogs, lang }: { current?: CurrentState; analog
     <p className="analog-line" data-testid="analog-line" title={t(lang, 'analog.how')}>
       <IconHistory />
       <span>{t(lang, 'analog.line', { date: asOf, years })}</span>
+    </p>
+  );
+}
+
+/** "Soil now": SMAP root-zone moisture on its latest day, and how it ranks against the same date in past years. */
+function SoilNow({ smap, lang }: { smap?: SmapCell | null; lang: Lang }) {
+  if (!smap) return null;
+  const T: Tr = (key, vars) => t(lang, key, vars);
+  const wetter = smap.past.filter((p) => p.value < smap.now).length;
+  const drier = smap.past.filter((p) => p.value > smap.now).length;
+  const m = smap.past.length;
+  return (
+    <p className="analog-line is-quiet" data-testid="smap-line" title={T('smap.how')}>
+      {T('smap.line', { date: formatDate(new Date(`${smap.date}T00:00:00Z`), lang), pct: Math.round(smap.now * 100) })}
+      {m > 0 && <> · {wetter >= drier ? T('smap.wetter', { n: wetter, m }) : T('smap.drier', { n: drier, m })}</>}
+    </p>
+  );
+}
+
+/** How often the model's dry-down day matched GLDAS satellite-informed soil moisture (blueprint §9.8). */
+function SelfCheckLine({ check, lang }: { check: SelfCheck | null; lang: Lang }) {
+  if (!check || check.total === 0) return null;
+  return (
+    <p className="selfcheck" data-testid="selfcheck-line" title={t(lang, 'selfcheck.how')}>
+      {t(lang, 'selfcheck.line', { agree: check.agree, total: check.total })}
     </p>
   );
 }
@@ -259,17 +292,17 @@ function Summary({ strategies, crops, windows, lang, today, whatIfDesc, needs, w
   );
 }
 
-function Card({ s, crops, lang, today, window, analog, whatIfDesc, need, waterings, income }: {
+function Card({ s, crops, lang, today, window, analog, whatIfDesc, need, waterings, income, hitRate }: {
   s: Strategy; crops: Crop[]; lang: Lang; today: Date; window?: SowingWindow; analog: OddsResult | null;
   whatIfDesc: string | null; need?: number | null; waterings: number; income?: IncomeEstimate | null;
+  hitRate: number | null;
 }) {
   const T: Tr = (key, vars) => t(lang, key, vars);
   const crop = crops.find((c) => c.id === s.cropId);
   const alt = crops.find((c) => c.id === s.altCropId);
   const name = (c: Crop) => (lang === 'th' ? c.nameTh : c.nameEn);
-  const split = analog != null && analogsSplit(analog);
-  const level = !s.odds || s.odds.total < MIN_SEASONS_FOR_MEDIUM || split ? 'low' : 'medium';
-  const why = s.odds && s.odds.total < MIN_SEASONS_FOR_MEDIUM ? 'low' : split ? 'split' : 'medium';
+  const { level, why } = badge({ seasons: s.odds?.total ?? 0, analog, hitRate });
+  const whyText = why.map((w) => T(`badge.why.${w}`));
   const pct = (n: number) => (s.odds && s.odds.total ? `${(n / s.odds.total) * 100}%` : '0%');
   return (
     <article className={`card option option-${s.id} tone-${tone(s.odds)}`} data-testid="card">
@@ -316,10 +349,10 @@ function Card({ s, crops, lang, today, window, analog, whatIfDesc, need, waterin
           {s.odds.total > 0 && <p className="odds-detail">{T('card.detail', { poor: s.odds.poor, failed: s.odds.failed })}</p>}
           {window && <WindowChart w={window} lang={lang} />}
           {alt && <p className="alt">{T('card.alt', { name: name(alt) })}</p>}
-          <p className={`pill badge-${level}`} title={T(`badge.why.${why}`)}>
+          <p className={`pill badge-${level}`} title={whyText.join('\n')}>
             {T('card.confidence')}: {T(`badge.${level}`)}
           </p>
-          <p className="badge-why">{T(`badge.why.${why}`)}</p>
+          {whyText.map((w) => <p key={w} className="badge-why">{w}</p>)}
           <p className="more-h">{T('card.blind')}</p>
           <ul>
             <li>{T('card.blind.1')}</li><li>{T('card.blind.2')}</li><li>{T('card.blind.3')}</li><li>{T('card.blind.4')}</li>

@@ -24,6 +24,10 @@ often would it have survived on the water in the soil and the rain that followed
   cause of failure.
 - **Estimated income:** each cash-crop card shows what the harvest would sell for per rai at a standard
   Office of Agricultural Economics price, averaged over the past seasons and in a good year. Income, not profit.
+- **NASA satellite checks:** the season under way shows NASA IMERG satellite rain beside the rain the model uses,
+  and "soil now" from NASA SMAP (wetter or drier than the same date in past years). Under the timeline, a self-check
+  says in how many past seasons the model's dry-down day matched NASA GLDAS soil moisture; it decides whether a card's
+  confidence badge can reach High.
 - **Share link:** the page address keeps the field and its settings, so "Copy link" sends someone the exact same answer
   (for example, to the local extension officer). Try the pilot area: https://salapa0.github.io/demeter-fieldshift/#lat=16.43&lon=102.83
 - **Times you can water:** tell the app how many waterings you can give (30 mm each, from a pond or shallow well)
@@ -37,6 +41,9 @@ often would it have survived on the water in the soil and the rain that followed
 | Source | Used for |
 |---|---|
 | NASA POWER daily point API (`PRECTOTCORR`, `T2M_MAX`, `T2M_MIN`, `GWETROOT`), 0.5° × 0.625°, seasons 2001/02 to 2025/26 | Rain, temperature and starting root-zone wetness for every replay; the current season for the look-alike years |
+| NASA GPM IMERG Late daily V07 (`GPM_3IMERGDL`), 0.1°, via GES DISC OPeNDAP | Satellite rain for the season under way, beside the model's rain (refreshed daily by the deploy workflow) |
+| NASA SMAP L4 (`SPL4SMGP` v8) root-zone soil moisture, 9 km, via NSIDC cloud OPeNDAP | "Soil now" and the same date in each year since 2015 (refreshed daily) |
+| NASA GLDAS Noah 2.1 (`GLDAS_NOAH025_3H`) root-zone soil moisture, 0.25°, via the Giovanni time-series API | Self-check of the model in each past season (stored in the cell files) |
 | FAO-56 (Allen et al. 1998), Tables 11, 12, 19, 22 | Crop stages, crop coefficients, root depth, depletion fraction, soil water; Hargreaves ET0 |
 | EOX Sentinel-2 cloudless 2016 (CC BY 4.0) | Satellite basemap (display only) |
 | OpenFreeMap / OpenStreetMap | Street basemap (display only) |

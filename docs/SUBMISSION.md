@@ -32,11 +32,14 @@ It supports a decision; it does not make one. The model's thresholds are uncalib
 | Data | How it is used |
 |---|---|
 | **NASA POWER** daily agroclimatology (`PRECTOTCORR`, `T2M_MAX`, `T2M_MIN`, `GWETROOT`; MERRA-2 based; 0.5° × 0.625°) | 25 seasons (2001/02–2025/26) for all 194 grid cells over Thailand, and the live current season |
+| **NASA GPM IMERG** Late daily V07, 0.1° | Satellite rain for the season under way, shown beside the model's rain |
+| **NASA SMAP** L4 root-zone soil moisture (SPL4SMGP v8), 9 km | "Soil now", compared with the same date in every year since 2015 |
+| **NASA GLDAS** Noah 2.1 root-zone soil moisture, 0.25° | Self-check: in how many past seasons the model's dry-down day matched GLDAS; sets the confidence badge |
 | **FAO-56** crop evapotranspiration guidelines (Tables 11, 12, 19, 22) | Crop coefficients, growth stages, root depth, soil water limits |
 | **Copernicus Sentinel-2** cloudless mosaic 2016 by EOX (CC BY 4.0) | Satellite basemap |
 | OpenStreetMap via OpenFreeMap | Street basemap |
 
-Not used, and why: SMAP, GPM IMERG and GLDAS need an Earthdata login in the data pipeline, which was not set up in time. They are the planned next step for sharper rain and an independent soil-moisture check.
+IMERG, SMAP and GLDAS are averaged into the same NASA POWER grid cell. The model is not tuned to them: they are shown as independent checks, and the self-check result (about half the seasons agree at the median cell) is reported as it came out.
 
 ## How it meets the challenge
 
@@ -46,6 +49,7 @@ Not used, and why: SMAP, GPM IMERG and GLDAS need an Earthdata login in the data
 - Highlights vulnerable seasons and the sowing window.
 - Scenario sliders for rainfall and temperature, labelled "not a forecast".
 - Statistical pattern matching: look-alike past seasons.
+- Uncertainty made visible: a self-check against NASA GLDAS soil moisture and a confidence badge that lists its reasons.
 
 ## Use of AI
 

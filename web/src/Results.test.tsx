@@ -150,7 +150,7 @@ test('the GLDAS self-check line and a High badge when the model agrees and look-
   };
   render(<Results cell={cell(past)} lang="en" current={now} />);
   // Rain every day: neither the model nor GLDAS dries during the crop, so every season agrees.
-  expect(screen.getByTestId('selfcheck-line')).toHaveTextContent(/GLDAS.*16 of 16 seasons/);
+  expect(screen.getByTestId('selfcheck-line')).toHaveTextContent(/GLDAS.*16 of 16 years/);
   expect(screen.getAllByText('Confidence: High')).toHaveLength(2);
 });
 
@@ -219,10 +219,20 @@ test('each crop card shows one countable mark per past season, survived first', 
   expect(marks[0].getAttribute('aria-label')).toMatch(/Survived \d · Poor \d · Failed \d/);
 });
 
+test('the headings use the audit wording and odds count years, not seasons', () => {
+  render(<Results cell={cell([season(2015, 5, 0.8), season(2016, 5, 0.8)])} lang="th" onChangeField={() => {}} />);
+  expect(screen.getByRole('heading', { name: 'พิกัด' })).toBeInTheDocument();
+  expect(screen.getByRole('button', { name: 'เลือกพิกัดใหม่' })).toBeInTheDocument();
+  expect(screen.getByRole('heading', { name: 'ข้อมูลอ้างอิง' })).toBeInTheDocument();
+  expect(screen.getByRole('heading', { name: 'ย้อนดูปีก่อน ๆ ว่ารอดไหม' })).toBeInTheDocument();
+  expect(screen.getAllByText(/รอด 2 จาก 2 ปี/).length).toBeGreaterThan(0);
+  expect(screen.queryByText(/จาก 2 ฤดู/)).toBeNull();
+});
+
 test('the NASA checks sit together under one plain heading, after the options', () => {
   const smap = { date: '2026-11-12', now: 0.284, past: [{ year: 2020, value: 0.2 }] };
   render(<Results cell={cell([season(2015, 5, 0.8)])} lang="en" smap={smap} current="error" />);
-  const check = screen.getByRole('region', { name: 'How sure is this?' });
+  const check = screen.getByRole('region', { name: 'Reference data' });
   expect(check).toContainElement(screen.getByTestId('smap-line'));
   expect(check).toHaveTextContent(/Could not fetch this season/);
   const cards = screen.getAllByTestId('card');

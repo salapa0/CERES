@@ -4,6 +4,7 @@ import {
   type CellData, type Crop, type FieldPosition, type OddsResult, type Outcome, type SeasonData, type SoilTexture,
   type SowingWindow, type Strategy, type WhatIf,
 } from './engine';
+import { incomeEstimate, type IncomeEstimate } from './engine/income';
 import { analogOdds, analogsSplit, findAnalogs, type Analog, type CurrentSeason } from './engine/analog';
 import { DEFAULT_POSITION, DEFAULT_SOIL, DEFAULT_SOW, IRRIGATION_MM, SOIL_TEXTURES, WATERINGS_SEARCH_MAX } from './engine/constants';
 import { formatDate, formatMonthDay, formatSeason, t, type Key, type Lang } from './i18n';
@@ -106,6 +107,7 @@ export function Results({ cell, lang, current, today = new Date(), initial = {},
             window={s.cropId ? windows[s.cropId] : undefined}
             analog={s.cropId && analogs.length ? analogOdds(timeline[s.cropId], cell.seasons, analogs) : null}
             need={s.cropId ? needs[s.cropId] : undefined} waterings={waterings}
+            income={s.cropId ? incomeEstimate(timeline[s.cropId] ?? [], crops.find((c) => c.id === s.cropId)?.market) : null}
             whatIfDesc={whatIfDesc} />
         ))}
       </div>
@@ -240,9 +242,9 @@ function Summary({ strategies, crops, windows, lang, today, whatIfDesc, needs, w
   );
 }
 
-function Card({ s, crops, lang, today, window, analog, whatIfDesc, need, waterings }: {
+function Card({ s, crops, lang, today, window, analog, whatIfDesc, need, waterings, income }: {
   s: Strategy; crops: Crop[]; lang: Lang; today: Date; window?: SowingWindow; analog: OddsResult | null;
-  whatIfDesc: string | null; need?: number | null; waterings: number;
+  whatIfDesc: string | null; need?: number | null; waterings: number; income?: IncomeEstimate | null;
 }) {
   const T: Tr = (key, vars) => t(lang, key, vars);
   const crop = crops.find((c) => c.id === s.cropId);
@@ -281,6 +283,14 @@ function Card({ s, crops, lang, today, window, analog, whatIfDesc, need, waterin
             : T('card.need', { n: need, mm: need * IRRIGATION_MM })}
         </p>
       )}
+      {s.odds && s.odds.total > 0 && crop && (
+        <p className="income" data-testid="income">
+          {income && crop.market
+            ? <>{T('income.est', { avg: baht(income.average, lang), good: baht(income.goodYear, lang) })}
+                <small> · {T('income.src', { date: monthYear(crop.market.asOf, lang) })}</small></>
+            : T('income.none')}
+        </p>
+      )}
       {s.odds && window && <WindowInfo w={window} lang={lang} today={today} />}
       {s.odds && <p className={`effect effect-${s.soilEffect}`}><IconLeaf />{T(`effect.${s.soilEffect}`)}</p>}
       {s.odds && (
@@ -295,7 +305,7 @@ function Card({ s, crops, lang, today, window, analog, whatIfDesc, need, waterin
           <p className="badge-why">{T(`badge.why.${why}`)}</p>
           <p className="more-h">{T('card.blind')}</p>
           <ul>
-            <li>{T('card.blind.1')}</li><li>{T('card.blind.2')}</li><li>{T('card.blind.3')}</li>
+            <li>{T('card.blind.1')}</li><li>{T('card.blind.2')}</li><li>{T('card.blind.3')}</li><li>{T('card.blind.4')}</li>
             {crop?.assumption && <li>{T('card.estimate')}</li>}
           </ul>
           <p>{T('card.ask')}</p>
@@ -362,6 +372,11 @@ function ShareButton({ lang }: { lang: Lang }) {
     </span>
   );
 }
+
+// Rounded to 10 baht: the inputs are far rougher than that.
+const baht = (n: number, lang: Lang) => (Math.round(n / 10) * 10).toLocaleString(lang === 'th' ? 'th-TH' : 'en-US');
+const monthYear = (ym: string, lang: Lang) => new Date(`${ym}-15T00:00:00Z`)
+  .toLocaleDateString(lang === 'th' ? 'th-TH' : 'en-GB', { month: 'short', year: 'numeric', timeZone: 'UTC' });
 
 /** Small bar chart of the odds for each sowing date. */
 function WindowChart({ w, lang }: { w: SowingWindow; lang: Lang }) {

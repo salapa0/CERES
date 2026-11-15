@@ -22,6 +22,8 @@ often would it have survived on the water in the soil and the rain that followed
   most similar past seasons.
 - **Time machine timeline:** every crop in every past season; tap one to see the soil-water chart and the day and
   cause of failure.
+- **Estimated income:** each cash-crop card shows what the harvest would sell for per rai at a standard
+  Office of Agricultural Economics price, averaged over the past seasons and in a good year. Income, not profit.
 - **Share link:** the page address keeps the field and its settings, so "Copy link" sends someone the exact same answer
   (for example, to the local extension officer). Try the pilot area: https://salapa0.github.io/demeter-fieldshift/#lat=16.43&lon=102.83
 - **Times you can water:** tell the app how many waterings you can give (30 mm each, from a pond or shallow well)

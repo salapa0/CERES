@@ -39,6 +39,15 @@ export interface Crop {
   incorporateAfterDevDays?: number;
   sources: string[];
   assumption: boolean;
+  market?: Market; // cash crops only; a green manure has none
+}
+
+/** A standard yield and farm-gate price, the same for every user; income, not profit. */
+export interface Market {
+  yieldKgPerRai: number;
+  priceBahtPerKg: number;
+  asOf: string; // 'YYYY-MM' of the price
+  sources: string[];
 }
 
 export interface WhatIf { rainFactor: number; dT: number }

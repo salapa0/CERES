@@ -40,3 +40,6 @@ export const SOIL_TEXTURES: Record<SoilTexture, { fc: number; wp: number }> = {
   // Table 19 has no "clay loam" row; this uses its nearest row, "Silt clay loam" (0.30–0.37, 0.17–0.24).
   clayLoam: { fc: 0.335, wp: 0.205 },
 };
+
+// Income: a 'poor' season (crop survived but stressed) is counted as half a normal harvest. Assumption, not measured.
+export const POOR_HARVEST_SHARE = 0.5;

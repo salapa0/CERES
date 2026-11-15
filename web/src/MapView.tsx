@@ -58,7 +58,9 @@ export function MapView({ point, onPick, lang, hint }: {
   }, [point]);
 
   useEffect(() => {
-    if (ready) mapRef.current!.setLayoutProperty('satellite', 'visibility', satellite ? 'visible' : 'none');
+    // The layer check guards a map that was recreated (hot reload) while `ready` stayed true.
+    const map = mapRef.current;
+    if (ready && map?.getLayer('satellite')) map.setLayoutProperty('satellite', 'visibility', satellite ? 'visible' : 'none');
   }, [satellite, ready]);
 
   return (

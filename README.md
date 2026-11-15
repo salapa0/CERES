@@ -2,6 +2,8 @@
 
 **What should a rain-fed rice farmer in Thailand plant after the harvest? Tap your field, and the app replays 25 past dry seasons of NASA data to show how each crop would have done.**
 
+**Live demo: https://salapa0.github.io/demeter-fieldshift/**
+
 NASA Space Apps Challenge 2026, challenge *Field Shift: Adapting Farms with NASA Data*.
 Submission deadline: Sunday 15 Nov 2026, 23:59 local time (team target: 20:00).
 
@@ -20,6 +22,9 @@ often would it have survived on the water in the soil and the rain that followed
   most similar past seasons.
 - **Time machine timeline:** every crop in every past season; tap one to see the soil-water chart and the day and
   cause of failure.
+- **Times you can water:** tell the app how many waterings you can give (30 mm each, from a pond or shallow well)
+  and the odds update. Each crop card also says how many waterings that crop needs to survive 4 years in 5, or that
+  it is a crop for irrigated fields.
 - **What-if sliders:** less rain or more heat, applied to every past season (not a forecast).
 - English by default, Thai one tap away, with Buddhist-era years.
 
@@ -34,7 +39,8 @@ often would it have survived on the water in the soil and the rain that followed
 
 Each replay is an FAO-56 root-zone water balance, day by day from the sowing date. A week of severe water stress
 after establishment, or three days of extreme heat at flowering, counts as a failed season. Lowland paddies get a
-small daily groundwater supply (capillary rise) that fades as the NASA soil wetness falls.
+small daily groundwater supply (capillary rise) that fades as the NASA soil wetness falls. A watering is applied
+when the soil passes the crop's stress line, at most once a week, while the farmer's waterings last.
 
 ## Limits
 
@@ -42,7 +48,8 @@ small daily groundwater supply (capillary rise) that fades as the NASA soil wetn
   crops and sowing dates, not as exact probabilities.
 - **55 km cells.** The data is an average over a wide area; a single field can be wetter or drier.
 - **Some crop values are assumptions:** Thai mung bean stage lengths, all heat limits, every sunn hemp value.
-- Pests, disease, prices, labour and irrigation are not modelled. Soil texture and field type are the farmer's choice.
+- Pests, disease, prices and labour are not modelled. Watering is a simple fixed 30 mm per turn; the cost and
+  source of the water are not modelled. Soil texture and field type are the farmer's choice.
 
 ## Run it
 
@@ -68,4 +75,4 @@ formulas in `web/src/engine/`.
 
 ## License
 
-To be decided by the team. Not affiliated with or endorsed by NASA.
+MIT, see [LICENSE](LICENSE). Not affiliated with or endorsed by NASA.

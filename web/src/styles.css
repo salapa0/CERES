@@ -138,7 +138,7 @@ main { max-width: 1072px; margin: 0 auto; padding: 20px 16px 8px; display: flex;
 .results-head p { color: var(--muted); font-size: var(--fs-small); margin-top: 4px; }
 .coord { display: inline-flex; align-items: center; gap: 6px; padding: 6px 12px; border-radius: 999px; background: var(--card); border: 1px solid var(--line); color: var(--ink-3); font-size: var(--fs-small); font-weight: 600; font-variant-numeric: tabular-nums; }
 
-.inputs { display: grid; grid-template-columns: repeat(3, minmax(0, 1fr)); gap: 12px; padding: 16px; }
+.inputs { display: grid; grid-template-columns: repeat(4, minmax(0, 1fr)); gap: 12px; padding: 16px; }
 .inputs label { display: flex; flex-direction: column; gap: 6px; color: var(--ink-3); font-size: var(--fs-small); font-weight: 600; min-width: 0; }
 select {
   appearance: none; width: 100%; min-height: 46px; padding: 0 40px 0 14px; border: 1px solid var(--line-strong); border-radius: var(--radius-control);
@@ -172,6 +172,7 @@ select:hover { border-color: #B9C7D8; }
 .meter .m-poor { background: var(--caution); }
 .meter .m-failed { background: var(--danger); opacity: .85; }
 .odds-detail { color: var(--muted); font-size: var(--fs-small); }
+.water-need { margin: 0; font-size: var(--fs-small); font-weight: 600; color: var(--ink-2, inherit); }
 .analog-odds { display: inline-flex; align-self: flex-start; padding: 4px 10px; border-radius: 999px; background: var(--accent-soft); color: var(--accent-ink); font-size: var(--fs-small); font-weight: 600; }
 .whatif-note { display: inline-flex; align-self: flex-start; padding: 4px 10px; border-radius: 999px; background: var(--caution-soft); color: var(--caution-ink); font-size: var(--fs-small); font-weight: 600; }
 .effect { display: flex; align-items: center; gap: 8px; padding: 8px 10px; border-radius: 10px; background: var(--soft); color: var(--ink-2); font-size: var(--fs-small); font-weight: 600; }
@@ -279,7 +280,6 @@ input[type='range'] { width: 100%; min-height: 40px; accent-color: var(--accent)
   .map-card { padding: 6px; }
   .map { height: 300px; }
   .inputs { grid-template-columns: 1fr 1fr; padding: 12px; gap: 10px; }
-  .inputs label:last-child { grid-column: 1 / -1; }
   .results-head h2 { font-size: 24px; }
   .timeline-card, .whatif, .drawer { padding: 14px; }
   .whatif label { min-width: 100%; }

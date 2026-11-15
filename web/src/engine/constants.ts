@@ -19,6 +19,13 @@ export const ANALOG_K = 3; // nearest past seasons used for "this season looks l
 // NASA root-zone wetness, so wet years supply more and the supply fades through the dry season.
 export const CAPILLARY_RISE_MAX_MM: Record<FieldPosition, number> = { upland: 0, lowland: 3.5 };
 
+// Extra water the farmer can give (pond, shallow well, canal). One watering is applied when the soil
+// passes the stress line, at most once every IRRIGATION_MIN_GAP_DAYS days.
+export const IRRIGATION_MM = 30; // one watering, as depth of water over the field
+export const IRRIGATION_MIN_GAP_DAYS = 7;
+export const WATERINGS_SEARCH_MAX = 8; // "how many waterings to be safe" looks no further than this
+export const SAFE_SHARE = 0.8; // "safe" = survived at least 4 of 5 past seasons
+
 export const DEFAULT_SOW = '11-15';
 export const DEFAULT_SOIL: SoilTexture = 'loamySand';
 export const DEFAULT_POSITION: FieldPosition = 'lowland';

@@ -76,3 +76,13 @@ test('a failed live fetch says so instead of showing look-alike years', () => {
   render(<Results cell={cell([season(2015, 5, 0.8)])} lang="en" current="error" />);
   expect(screen.getByText(/Could not fetch this season/)).toBeInTheDocument();
 });
+
+test('choosing waterings improves a dry field and each crop card says how much water it needs', () => {
+  render(<Results cell={cell([season(2015, 0, 0.45), season(2016, 0, 0.45)])} lang="en" />);
+  expect(screen.getAllByTestId('water-need')).toHaveLength(2);
+  expect(screen.getByTestId('summary-water')).toHaveTextContent(/If you can water about \d times/);
+  const failedBefore = screen.getAllByRole('button', { name: /✖/ }).length;
+  fireEvent.change(screen.getByTestId('waterings'), { target: { value: '8' } });
+  expect(screen.queryAllByRole('button', { name: /✖/ }).length).toBeLessThan(failedBefore);
+  expect(screen.getAllByText(/Counting your 8 waterings/).length).toBeGreaterThan(0);
+});

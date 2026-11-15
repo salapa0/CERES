@@ -1,11 +1,11 @@
 import { useDeferredValue, useMemo, useState } from 'react';
 import {
-  buildStrategies, dayIndexToDate, daysLeft, loadCrops, replay, runTimeline, seasonLength, sowingWindow,
+  buildStrategies, dayIndexToDate, daysLeft, loadCrops, replay, runTimeline, seasonLength, sowingWindow, waterNeeded,
   type CellData, type Crop, type FieldPosition, type OddsResult, type Outcome, type SeasonData, type SoilTexture,
   type SowingWindow, type Strategy, type WhatIf,
 } from './engine';
 import { analogOdds, analogsSplit, findAnalogs, type Analog, type CurrentSeason } from './engine/analog';
-import { DEFAULT_POSITION, DEFAULT_SOIL, DEFAULT_SOW, SOIL_TEXTURES } from './engine/constants';
+import { DEFAULT_POSITION, DEFAULT_SOIL, DEFAULT_SOW, IRRIGATION_MM, SOIL_TEXTURES, WATERINGS_SEARCH_MAX } from './engine/constants';
 import { formatDate, formatMonthDay, formatSeason, t, type Key, type Lang } from './i18n';
 import { IconClose, IconHistory, IconLeaf, IconPin } from './icons';
 
@@ -14,6 +14,7 @@ const ICON: Record<Outcome['kind'], string> = { good: '🌱', poor: '🍂', fail
 const KINDS: Outcome['kind'][] = ['good', 'poor', 'failed', 'nodata'];
 const MIN_SEASONS_FOR_MEDIUM = 15;
 const REAL: WhatIf = { rainFactor: 1, dT: 0 };
+const WATERING_CHOICES = [0, 1, 2, 3, 4, 6, 8];
 
 /** Live data for the season under way: still loading, failed, or loaded. */
 export type CurrentState = 'loading' | 'error' | CurrentSeason;
@@ -34,16 +35,22 @@ export function Results({ cell, lang, current, today = new Date() }: {
   const [sow, setSow] = useState(DEFAULT_SOW);
   const [soil, setSoil] = useState<SoilTexture>(DEFAULT_SOIL);
   const [position, setPosition] = useState<FieldPosition>(DEFAULT_POSITION);
+  const [waterings, setWaterings] = useState(0);
   const [whatIfNow, setWhatIf] = useState<WhatIf>(REAL);
   const whatIf = useDeferredValue(whatIfNow); // keeps the sliders smooth while the replays catch up
   const [open, setOpen] = useState<{ crop: Crop; season: SeasonData } | null>(null);
 
   const timeline = useMemo(
-    () => runTimeline(cell, crops, sow, soil, position, whatIf), [cell, crops, sow, soil, position, whatIf]);
+    () => runTimeline(cell, crops, sow, soil, position, whatIf, waterings),
+    [cell, crops, sow, soil, position, whatIf, waterings]);
   const strategies = useMemo(() => buildStrategies(timeline, crops), [timeline, crops]);
   const windows = useMemo(() => Object.fromEntries(crops
     .filter((c) => strategies.some((s) => s.cropId === c.id))
-    .map((c) => [c.id, sowingWindow(cell, c, soil, position, whatIf)])), [cell, crops, strategies, soil, position, whatIf]);
+    .map((c) => [c.id, sowingWindow(cell, c, soil, position, whatIf, waterings)])),
+    [cell, crops, strategies, soil, position, whatIf, waterings]);
+  // How many waterings each crop would need to be safe, whatever the farmer has chosen above.
+  const needs = useMemo(() => Object.fromEntries(
+    crops.map((c) => [c.id, waterNeeded(cell, c, sow, soil, position, whatIf)])), [cell, crops, sow, soil, position, whatIf]);
   const analogs = useMemo(
     () => (current && typeof current === 'object' ? findAnalogs(cell.seasons, current) : []), [cell, current]);
   const name = (c: Crop) => (lang === 'th' ? c.nameTh : c.nameEn);
@@ -59,7 +66,8 @@ export function Results({ cell, lang, current, today = new Date() }: {
         </span>
       </div>
 
-      <Summary strategies={strategies} crops={crops} windows={windows} lang={lang} today={today} whatIfDesc={whatIfDesc} />
+      <Summary strategies={strategies} crops={crops} windows={windows} lang={lang} today={today} whatIfDesc={whatIfDesc}
+        needs={needs} waterings={waterings} />
       <AnalogLine current={current} analogs={analogs} lang={lang} />
 
       <div className="card inputs">
@@ -79,6 +87,13 @@ export function Results({ cell, lang, current, today = new Date() }: {
             <option value="upland">{T('position.upland')}</option>
           </select>
         </label>
+        <label>{T('input.water')}
+          <select value={waterings} onChange={(e) => setWaterings(Number(e.target.value))} data-testid="waterings">
+            {WATERING_CHOICES.map((n) => (
+              <option key={n} value={n}>{n === 0 ? T('water.none') : T('water.n', { n, mm: n * IRRIGATION_MM })}</option>
+            ))}
+          </select>
+        </label>
       </div>
 
       <div className="cards" aria-label={T('results.options')}>
@@ -86,6 +101,7 @@ export function Results({ cell, lang, current, today = new Date() }: {
           <Card key={s.id} s={s} crops={crops} lang={lang} today={today}
             window={s.cropId ? windows[s.cropId] : undefined}
             analog={s.cropId && analogs.length ? analogOdds(timeline[s.cropId], cell.seasons, analogs) : null}
+            need={s.cropId ? needs[s.cropId] : undefined} waterings={waterings}
             whatIfDesc={whatIfDesc} />
         ))}
       </div>
@@ -141,7 +157,7 @@ export function Results({ cell, lang, current, today = new Date() }: {
 
       {open && (
         <Drawer cell={cell} crop={open.crop} season={open.season} sow={sow} soil={soil} position={position}
-          whatIf={whatIf} lang={lang} onClose={() => setOpen(null)} />
+          whatIf={whatIf} waterings={waterings} lang={lang} onClose={() => setOpen(null)} />
       )}
 
       <WhatIfPanel value={whatIfNow} onChange={setWhatIf} lang={lang} />
@@ -181,9 +197,9 @@ function AnalogLine({ current, analogs, lang }: { current?: CurrentState; analog
 }
 
 /** One-sentence answer: the best crop here, its odds and the date to plant by. */
-function Summary({ strategies, crops, windows, lang, today, whatIfDesc }: {
+function Summary({ strategies, crops, windows, lang, today, whatIfDesc, needs, waterings }: {
   strategies: Strategy[]; crops: Crop[]; windows: Record<string, SowingWindow>; lang: Lang; today: Date;
-  whatIfDesc: string | null;
+  whatIfDesc: string | null; needs: Record<string, number | null>; waterings: number;
 }) {
   const T: Tr = (key, vars) => t(lang, key, vars);
   const share = (s: Strategy) => (s.odds && s.odds.total ? s.odds.good / s.odds.total : -1);
@@ -195,6 +211,11 @@ function Summary({ strategies, crops, windows, lang, today, whatIfDesc }: {
   const vars = { crop: name, good: best.odds.good, total: best.odds.total };
   const w = windows[crop.id];
   const left = w?.latest ? daysLeft(w.latest, today) : null;
+  // When nothing is safe on leftover moisture alone, say what the cheapest fix with water would be.
+  const thirsty = crops
+    .map((c) => ({ c, n: needs[c.id] }))
+    .filter((x): x is { c: Crop; n: number } => x.n != null && x.n > 0)
+    .sort((a, b) => a.n - b.n)[0];
   return (
     <div className={`card summary tone-${level}`} data-testid="summary">
       <p className="summary-kicker">{T('summary.kicker')}</p>
@@ -205,14 +226,19 @@ function Summary({ strategies, crops, windows, lang, today, whatIfDesc }: {
           {left != null && <> · {left > 1 ? T('card.daysLeft', { n: left }) : left === 1 ? T('card.dayLeft') : left === 0 ? T('card.lastDay') : T('card.late')}</>}
         </p>
       )}
+      {level !== 'good' && waterings === 0 && thirsty && (
+        <p className="summary-plant" data-testid="summary-water">
+          {T('summary.water', { crop: lang === 'th' ? thirsty.c.nameTh : thirsty.c.nameEn, n: thirsty.n, mm: thirsty.n * IRRIGATION_MM })}
+        </p>
+      )}
       {whatIfDesc && <p className="summary-note">{T('summary.whatIf')}</p>}
     </div>
   );
 }
 
-function Card({ s, crops, lang, today, window, analog, whatIfDesc }: {
+function Card({ s, crops, lang, today, window, analog, whatIfDesc, need, waterings }: {
   s: Strategy; crops: Crop[]; lang: Lang; today: Date; window?: SowingWindow; analog: OddsResult | null;
-  whatIfDesc: string | null;
+  whatIfDesc: string | null; need?: number | null; waterings: number;
 }) {
   const T: Tr = (key, vars) => t(lang, key, vars);
   const crop = crops.find((c) => c.id === s.cropId);
@@ -242,6 +268,14 @@ function Card({ s, crops, lang, today, window, analog, whatIfDesc }: {
           )}
           {whatIfDesc && <p className="whatif-note">{T('card.whatIf', { desc: whatIfDesc })}</p>}
         </>
+      )}
+      {s.odds && s.odds.total > 0 && need !== undefined && (
+        <p className="water-need" data-testid="water-need">
+          {waterings > 0 && <>{T('card.withWater', { n: waterings })} · </>}
+          {need === null ? T('card.needMany', { n: WATERINGS_SEARCH_MAX })
+            : need === 0 ? T('card.needNone')
+            : T('card.need', { n: need, mm: need * IRRIGATION_MM })}
+        </p>
       )}
       {s.odds && window && <WindowInfo w={window} lang={lang} today={today} />}
       {s.odds && <p className={`effect effect-${s.soilEffect}`}><IconLeaf />{T(`effect.${s.soilEffect}`)}</p>}
@@ -335,12 +369,13 @@ function WhatIfPanel({ value, onChange, lang }: { value: WhatIf; onChange: (w: W
 
 function Drawer(p: {
   cell: CellData; crop: Crop; season: SeasonData; sow: string; soil: SoilTexture; position: FieldPosition;
-  whatIf: WhatIf; lang: Lang; onClose: () => void;
+  whatIf: WhatIf; waterings: number; lang: Lang; onClose: () => void;
 }) {
   const { lang, season, crop } = p;
   const T: Tr = (key, vars) => t(lang, key, vars);
   const o = replay({
-    cell: p.cell, season, crop, sowMonthDay: p.sow, soil: p.soil, position: p.position, whatIf: p.whatIf, withDaily: true,
+    cell: p.cell, season, crop, sowMonthDay: p.sow, soil: p.soil, position: p.position, whatIf: p.whatIf, waterings: p.waterings,
+    withDaily: true,
   });
   return (
     <aside className="card drawer" data-testid="drawer">

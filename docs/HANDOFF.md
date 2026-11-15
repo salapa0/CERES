@@ -39,6 +39,9 @@ python pipeline/build_history.py --limit 1  # just the Khon Kaen pilot cell
 | Waterings: 0–8 waterings of 30 mm, applied when the soil passes the stress line, at most weekly; "waterings needed" per crop | `engine/index.ts` (`replay` `waterings`, `waterNeeded`), `Results.tsx` | 3 engine tests + 1 component test; in the browser near Khon Kaen: sunn hemp 7 → 20 of 25 seasons with 2 waterings |
 | Share link: the address keeps the field, sowing date, soil, field type, waterings and language (`#lat=16.43&lon=102.83&water=2&lang=th`, defaults left out); "Copy link" button with a fallback for in-app browsers that block the clipboard; settings now survive picking another field | `share.ts`, `App.tsx`, `Results.tsx` (`ShareButton`) | 4 codec tests + 3 component tests; in the browser: a Thai link opened on the Khon Kaen cell with its settings, changes rewrote the address, the copy fallback worked in the preview pane. **Not tried in LINE or on a phone** |
 | Income estimate: each cash-crop card shows income per rai at a standard OAE price (average over the past seasons: good = full harvest, poor = half, failed = 0; and a good year). Income, not profit (profit needs each farmer's own costs). Sunn hemp: "no cash income". Yields and prices with sources in `crops.json` `market` | `engine/income.ts`, `crops.json`, `Results.tsx` | 4 engine/data tests + 1 component test; browser near Khon Kaen with 2 waterings: mung bean ≈ ฿330/rai average, ฿3,300 good year; Thai text checked. **Mung bean yield (150 kg/rai) is my estimate; corn yield is a national all-season average; peanut price is 2022/23** |
+| IMERG satellite rain (F14): daily GPM IMERG Late for 1 Aug → yesterday, averaged into each cell, shown beside the POWER rain over the same days | `pipeline/build_imerg.py`, deploy workflow (daily cron 01:30 UTC), `Results.tsx` (`SatelliteRain`) | 3 pipeline tests + 2 component tests; CI run wrote 105 days × 194 cells; live site, Khon Kaen: IMERG 412 mm vs POWER 633 mm to 11 Nov |
+| GLDAS self-check and High badge (F11): for each past season, the day the model's root zone passes mung bean's stress point (sown 15 Nov) vs the day GLDAS root-zone moisture gets as dry on its own 5–95 % scale; agree within 14 days or neither dries. Hit rate under the timeline; badge High at ≥ 0.75 with unanimous look-alike years, Low below 0.5; the badge now lists every reason | `pipeline/build_gldas.py` (one-off GLDAS workflow) → `rootzone` in 185 cell files, `engine/selfcheck.ts`, `Results.tsx` | 3 pipeline tests + 7 engine tests + 2 component tests. Over 185 cells: median hit rate 0.52 (middle half 0.36–0.64), 16 cells ≥ 0.75, 89 below 0.5 |
+| SMAP soil now (F15): SMAP L4 root-zone moisture for the latest full day, and the same date every year since 2015, per cell; "wetter/drier than N of M past years" | `pipeline/build_smap.py`, deploy workflow, `data.ts` (`loadSmap`), `Results.tsx` (`SoilNow`) | 4 pipeline tests + 2 component tests; CI result: see §4 |
 | Tap → cell, with nearest-cell snap for islands and border tips | `web/src/data.ts` | 3 tests on the real grid |
 | Satellite basemap toggle (F16): EOX Sentinel-2 cloudless 2016, CC BY 4.0, under the labels | `MapView.tsx` | Licence read from EOX's WMTS capabilities; tile over Khon Kaen fetched and viewed. **The 2016 layer was not seen rendering in the browser** (an earlier try with the 2017 layer showed blank land, which is why it was swapped) |
 | My-location button (F1) | `App.tsx` | **Not tested**: the preview browser has no GPS |
@@ -50,8 +53,8 @@ python pipeline/build_history.py --limit 1  # just the Khon Kaen pilot cell
 
 | Item | Blueprint ref | Notes |
 |---|---|---|
-| Self-check against GLDAS satellite soil moisture; "High" confidence badge | F11 | Needs Earthdata login as repo secrets `EARTHDATA_USERNAME` / `EARTHDATA_PASSWORD` (a human adds them) |
-| IMERG rain, SMAP soil moisture | F14, F15 | Same Earthdata secrets |
+| IMERG Final for past seasons' rain (POWER rain still drives the replays) | F14 (history half) | Needs about 9,000 more daily downloads; IMERG is shown for the current season only |
+| SMAP as a look-alike feature | F15 | Left out on purpose, as the blueprint says (§9.7): SMAP starts in 2015 |
 | Daily cron writing `season/current.json` | F10 / M6 | Replaced by a live browser fetch, see §5.11 |
 | AI chat, MODIS check, SRTM | F18–F20 | P2 |
 | Citations for the soil-effect text | §10.2 | About page links the Land Development Department home page for green manure; the team should add a specific document |
@@ -68,7 +71,7 @@ Decisions made during the build. Change them freely, but know they were delibera
 5. **"Field type" input and groundwater supply.** With the blueprint's model alone, every crop failed in every year in Isan. The engine adds FAO-56 capillary rise: `CAPILLARY_RISE_MAX_MM` (lowland 3.5 mm/day, upland 0) × that day's relative NASA root-zone wetness. Default field type is lowland.
 6. **Default sowing date is 15 Nov**, not 1 Dec.
 7. **Outside-Thailand check** uses the grid only (within one cell of a Thai cell).
-8. **Confidence badge:** Low (< 15 seasons, or the look-alike years split 1-1-1) or Medium. High needs F11.
+8. **Confidence badge:** Low (< 15 seasons, a self-check hit rate below 0.5, or the look-alike years split 1-1-1); High (hit rate ≥ 0.75 and all three look-alike years agree); otherwise Medium. Without GLDAS data a cell stays at most Medium.
 9. **Wetness is stored to 2 decimals**, not 3, to keep cell files at about 176 KB.
 10. **FAO-56 check (new).** Mung bean Kc end is now 0.35 (Table 12 value for a dry-seed harvest; it was 0.6, the fresh-harvest value). FAO-56 Table 19 has no "clay loam" row, so `clayLoam` now uses its nearest row, "Silt clay loam" (FC 0.335, WP 0.205). Root depths stay at the low end of each Table 22 range, because the footnote reserves the larger values for soils without layering and paddies have a plough pan; switching to the larger values would make every crop look safer. Field corn keeps Kc end 0.60 (harvest at high grain moisture). Other values already matched. Not adopted: the Table 22 footnote adjustment of p for daily ETc.
 11. **Look-alike years come from a live fetch, not a cron (new).** The browser asks NASA POWER for 1 Aug → today for the tapped cell and keeps days up to the last one with every value (POWER runs about 3 days behind). No `season/current.json` and no daily workflow. If the fetch fails, the page says so and the cards show no "years like this" line.
@@ -76,23 +79,26 @@ Decisions made during the build. Change them freely, but know they were delibera
 13. **English is the default language (new),** at the team's request; Thai is one tap away.
 15. **Waterings (new, Sun).** With no farmer to ask and no working satellite check, the pilot area showed a wall of failures for three of four crops: leftover moisture alone cannot carry them. The challenge names water availability as a farmer constraint, so the farmer can now say how many times they can water. One watering = `IRRIGATION_MM` (30 mm), given when depletion passes the stress line, at most every `IRRIGATION_MIN_GAP_DAYS` (7). "Needed" = the fewest waterings (up to 8) with at least `SAFE_SHARE` (0.8) good seasons. All four numbers are starting values.
 16. **Never re-run an old deploy run.** Re-running a past "Test and deploy" run redeploys that run's old build over the live site (this happened once on 14 Nov). To redeploy, re-run the **latest** run on `main` or push a commit.
+17. **Self-check rule differs from the blueprint (new, Sun).** The blueprint's GLDAS bar (25th percentile of 1 Nov–31 Mar values) is far drier than the model's stress point (Dr > RAW); with it the median cell agreed in 8 % of seasons, and in many years the model is already past its stress point on the sowing day. GLDAS is now scaled between its own 5th and 95th percentiles, the way the engine scales POWER wetness, and counted dry at the same stress point (less than 1 − p of the range left). Both are looked for only while the crop is in the field, since the model does not run outside it. This was changed once, for that reason, and not tuned afterwards.
+18. **GLDAS comes from Giovanni, not Data Rods (new).** GES DISC shut down Hydrology Data Rods; Giovanni's time-series API serves one point per request, so each cell averages its 4–6 GLDAS land pixels. It takes `Authorization: Bearer <Earthdata token>`.
 14. **Satellite layer is EOX Sentinel-2 cloudless 2016 (new).** It is the global CC BY 4.0 year. The 2017 layer is also CC BY but blank over Thailand; 2018 onward is CC BY-NC-SA.
 
 ## 6. Known limits and risks (be honest about these in the pitch)
 
 - **The model is not calibrated.** All thresholds in `web/src/engine/constants.ts` and the groundwater number are starting values. Results show sensible patterns (the rainy south is mostly safe, Isan favours early sowing and short crops), but the exact odds should not be quoted as facts. Mung bean in particular fails almost every season in Isan in this model.
 - **Crop values:** checked against FAO-56 (§5.10), but Thai mung bean stage lengths (70 days), all heat limits and every sunn hemp value are still assumptions, and the cards say so.
-- **Data is a 55 km average** from NASA POWER (MERRA-2 based). No direct satellite soil moisture or rain yet.
+- **Data is a 55 km average** from NASA POWER (MERRA-2 based). IMERG, SMAP and GLDAS are shown beside it as checks; they do not drive the replays.
+- **The self-check is modest:** the median cell agrees with GLDAS in about half of past seasons, so most cards show Medium or Low. GLDAS is itself a model driven by satellite data, not a field measurement.
+- **IMERG and SMAP read from servers that are moving:** GES DISC's on-premises OPeNDAP is due to move to Earthdata Cloud. If a fetch fails, the deploy still goes out and the app hides that line.
 - **The premise is unconfirmed and will stay so for the submission:** nobody has asked an Isan farmer whether water risk is what stops them planting after rice. Say this plainly in the pitch.
-- **No independent check of the model.** The MODIS (ORNL) service was down on both 14 and 15 Nov, and the GLDAS/SMAP checks need an Earthdata login nobody has added.
-- **Repo size:** the data adds about 33 MB. The JS bundle is about 1 MB (MapLibre); Vite warns about it.
+- **MODIS check not done:** the ORNL service was down on both 14 and 15 Nov.
+- **Repo size:** the data adds about 43 MB (33 MB POWER + 10 MB GLDAS). The JS bundle is about 1 MB (MapLibre); Vite warns about it.
 
 ## 7. Suggested next steps, in order
 
 1. Merge `build/submission-polish`, then check the live URL on a real phone.
 2. Check the satellite toggle and the my-location button on a real phone.
 3. Fill in the Space Apps project page from `docs/SUBMISSION.md` and record the video with its script.
-4. Earthdata features (F11, F14, F15) if someone adds the secrets and time allows.
 5. 2-minute video, Space Apps project page; submit by 20:00 Sunday.
 
 ## 8. File map

@@ -128,6 +128,29 @@ export function pickImerg(file: ImergFile, id: string): ImergCell | null {
   return rain ? { start: file.start, asOf: file.asOf, rain } : null;
 }
 
+/** SMAP L4 root-zone soil moisture (m³/m³) on one day, and the same date in past years; pipeline/build_smap.py (F15). */
+export interface SmapFile {
+  product: string; date: string; years: number[]; generated: string;
+  cells: Record<string, { now: number; past: (number | null)[] }>;
+}
+export interface SmapCell { date: string; now: number; past: { year: number; value: number }[] }
+
+export function pickSmap(file: SmapFile, id: string): SmapCell | null {
+  const c = file.cells[id];
+  if (!c || c.now == null) return null;
+  const past = file.years
+    .map((year, i) => ({ year, value: c.past[i] }))
+    .filter((p): p is { year: number; value: number } => p.value != null);
+  return { date: file.date, now: c.now, past };
+}
+
+let smapFile: Promise<SmapFile | null> | null = null;
+/** Null when the file is missing: the app then hides the soil-now line. */
+export function loadSmap(id: string): Promise<SmapCell | null> {
+  smapFile ??= fetch(dataUrl('smap/current.json')).then((r) => (r.ok ? r.json() : null)).catch(() => null);
+  return smapFile.then((f) => (f ? pickSmap(f, id) : null));
+}
+
 let imergFile: Promise<ImergFile | null> | null = null;
 /** Null when the file is missing (pipeline not run, NASA down): the app then simply hides the satellite line. */
 export function loadImerg(id: string): Promise<ImergCell | null> {

@@ -4,7 +4,7 @@ import {
   type CellData, type Crop, type FieldPosition, type OddsResult, type Outcome, type SeasonData, type SoilTexture,
   type SowingWindow, type Strategy, type WhatIf,
 } from './engine';
-import type { ImergCell } from './data';
+import type { ImergCell, SmapCell } from './data';
 import { incomeEstimate, type IncomeEstimate } from './engine/income';
 import { analogOdds, findAnalogs, type Analog, type CurrentSeason } from './engine/analog';
 import { DEFAULT_POSITION, DEFAULT_SOIL, DEFAULT_SOW, IRRIGATION_MM, SOIL_TEXTURES, WATERINGS_SEARCH_MAX } from './engine/constants';
@@ -29,8 +29,8 @@ function tone(odds: OddsResult | null): 'good' | 'mid' | 'low' | 'none' {
   return share >= 0.6 ? 'good' : share >= 0.3 ? 'mid' : 'low';
 }
 
-export function Results({ cell, lang, current, today = new Date(), initial = {}, onSettings, imerg }: {
-  cell: CellData; lang: Lang; current?: CurrentState; today?: Date; imerg?: ImergCell | null;
+export function Results({ cell, lang, current, today = new Date(), initial = {}, onSettings, imerg, smap }: {
+  cell: CellData; lang: Lang; current?: CurrentState; today?: Date; imerg?: ImergCell | null; smap?: SmapCell | null;
   initial?: Partial<Settings>; onSettings?: (s: Settings) => void;
 }) {
   const crops = useMemo(loadCrops, []);
@@ -82,6 +82,7 @@ export function Results({ cell, lang, current, today = new Date(), initial = {},
         needs={needs} waterings={waterings} />
       <AnalogLine current={current} analogs={analogs} lang={lang} />
       <SatelliteRain current={current} imerg={imerg} lang={lang} />
+      <SoilNow smap={smap} lang={lang} />
 
       <div className="card inputs">
         <label>{T('input.sow')}
@@ -207,6 +208,21 @@ function AnalogLine({ current, analogs, lang }: { current?: CurrentState; analog
     <p className="analog-line" data-testid="analog-line" title={t(lang, 'analog.how')}>
       <IconHistory />
       <span>{t(lang, 'analog.line', { date: asOf, years })}</span>
+    </p>
+  );
+}
+
+/** "Soil now": SMAP root-zone moisture on its latest day, and how it ranks against the same date in past years. */
+function SoilNow({ smap, lang }: { smap?: SmapCell | null; lang: Lang }) {
+  if (!smap) return null;
+  const T: Tr = (key, vars) => t(lang, key, vars);
+  const wetter = smap.past.filter((p) => p.value < smap.now).length;
+  const drier = smap.past.filter((p) => p.value > smap.now).length;
+  const m = smap.past.length;
+  return (
+    <p className="analog-line is-quiet" data-testid="smap-line" title={T('smap.how')}>
+      {T('smap.line', { date: formatDate(new Date(`${smap.date}T00:00:00Z`), lang), pct: Math.round(smap.now * 100) })}
+      {m > 0 && <> · {wetter >= drier ? T('smap.wetter', { n: wetter, m }) : T('smap.drier', { n: drier, m })}</>}
     </p>
   );
 }

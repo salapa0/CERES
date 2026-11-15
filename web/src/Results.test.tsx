@@ -158,6 +158,23 @@ test('without GLDAS data there is no self-check line and the badge stays at Medi
   expect(screen.getAllByText('Not yet checked against satellite data').length).toBeGreaterThan(0);
 });
 
+test('soil now from SMAP, compared with the same date in past years', () => {
+  const smap = {
+    date: '2026-11-12', now: 0.284,
+    past: [{ year: 2020, value: 0.2 }, { year: 2021, value: 0.25 }, { year: 2022, value: 0.3 }, { year: 2023, value: 0.1 }],
+  };
+  const { unmount } = render(<Results cell={cell([season(2015, 5, 0.8)])} lang="en" smap={smap} />);
+  expect(screen.getByTestId('smap-line')).toHaveTextContent(/Soil now.*SMAP.*12 Nov 2026.*28%.*wetter than 3 of 4 past years/);
+  unmount();
+  render(<Results cell={cell([season(2015, 5, 0.8)])} lang="en" smap={{ ...smap, now: 0.15 }} />);
+  expect(screen.getByTestId('smap-line')).toHaveTextContent(/drier than 3 of 4 past years/);
+});
+
+test('no soil-now line without SMAP data', () => {
+  render(<Results cell={cell([season(2015, 5, 0.8)])} lang="en" />);
+  expect(screen.queryByTestId('smap-line')).toBeNull();
+});
+
 test('no satellite line without IMERG data', () => {
   render(<Results cell={cell([season(2015, 5, 0.8)])} lang="en" />);
   expect(screen.queryByTestId('imerg-line')).toBeNull();

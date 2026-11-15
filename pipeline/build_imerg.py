@@ -9,6 +9,7 @@ import json
 import os
 import re
 import sys
+import time
 import urllib.parse
 import urllib.request
 from pathlib import Path
@@ -59,13 +60,14 @@ def cell_means(rain, cells, half_lat, half_lon):
 def get(url, token):
     req = urllib.request.Request(url)
     req.add_header("Authorization", f"Bearer {token}")
-    for attempt in range(3):
+    for attempt in range(5):
         try:
             with urllib.request.urlopen(req, timeout=120) as r:
                 return r.read().decode("utf-8")
         except Exception:
-            if attempt == 2:
+            if attempt == 4:
                 raise
+            time.sleep(5 * 2 ** attempt)  # GES DISC answers 503 when pushed; back off 5, 10, 20, 40 s
     return ""
 
 
@@ -105,13 +107,20 @@ def main():
 
     def fetch(day):
         url = f"{SERVER}/{day.year}/{day.month:02d}/{files[day]}.ascii?{sel}"
-        return day, cell_means(parse_ascii(get(url, token)), cells, half_lat, half_lon)
+        try:
+            return day, cell_means(parse_ascii(get(url, token)), cells, half_lat, half_lon)
+        except Exception as e:  # one missing day becomes nulls rather than losing the whole season
+            print(f"{day} failed: {e}", flush=True)
+            return day, None
 
     by_day = {}
-    with concurrent.futures.ThreadPoolExecutor(max_workers=6) as pool:
+    with concurrent.futures.ThreadPoolExecutor(max_workers=2) as pool:
         for day, means in pool.map(fetch, have):
-            by_day[day] = means
-            print(f"{day} ok", flush=True)
+            if means is not None:
+                by_day[day] = means
+                print(f"{day} ok", flush=True)
+    if len(by_day) < 0.8 * len(have):
+        sys.exit(f"only {len(by_day)} of {len(have)} days fetched; not writing a patchy file")
 
     last = max(by_day)
     span = [start + dt.timedelta(n) for n in range((last - start).days + 1)]

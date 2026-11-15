@@ -5,7 +5,7 @@ import type { CellData, Crop, FieldPosition, SeasonData } from './types';
 const realCell = khonKaen as CellData;
 
 const crop: Crop = {
-  id: 'test', nameTh: 'ทดสอบ', nameEn: 'Test',
+  id: 'test', nameTh: 'ทดสอบ', nameEn: 'Test', group: 'legume',
   stages: { ini: 10, dev: 20, mid: 30, late: 20 }, kc: { ini: 0.4, mid: 1.1, end: 0.6 },
   rootDepthM: 0.6, p: 0.5, heatC: 45, soilEffect: 'nitrogen', sources: ['test'], assumption: false,
 };

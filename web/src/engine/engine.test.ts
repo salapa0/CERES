@@ -3,7 +3,7 @@ import { buildStrategies, dayIndexToDate, kcOnDay, loadCrops, odds, replay, runT
 import type { CellData, Crop, Outcome, SeasonData } from './types';
 
 const crop: Crop = {
-  id: 'test', nameTh: 'ทดสอบ', nameEn: 'Test',
+  id: 'test', nameTh: 'ทดสอบ', nameEn: 'Test', group: 'legume',
   stages: { ini: 10, dev: 20, mid: 30, late: 20 }, kc: { ini: 0.4, mid: 1.1, end: 0.6 },
   rootDepthM: 0.6, p: 0.5, heatC: 38, soilEffect: 'nitrogen', sources: ['test'], assumption: false,
 };

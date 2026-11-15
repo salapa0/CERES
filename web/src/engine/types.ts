@@ -26,10 +26,14 @@ export type SoilTexture = 'sand' | 'loamySand' | 'sandyLoam' | 'loam' | 'clayLoa
 export type SoilEffect = 'nitrogen' | 'organic' | 'uses' | 'bare';
 export type FieldPosition = 'upland' | 'lowland';
 
+/** How the crop is grouped in the choices: legumes, crops to sell, vegetables that need water, soil only. */
+export type CropGroup = 'legume' | 'cash' | 'veg' | 'manure';
+
 export interface Crop {
   id: string;
   nameTh: string;
   nameEn: string;
+  group: CropGroup;
   stages: { ini: number; dev: number; mid: number; late: number };
   kc: { ini: number; mid: number; end: number };
   rootDepthM: number;

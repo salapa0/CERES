@@ -17,18 +17,22 @@ asks a simple question for each field: *if you had sown this crop on this date i
 often would it have survived on the water in the soil and the rain that followed?*
 
 - **Tap your field** (or use your location). The app finds the NASA POWER grid cell around it.
-- **Your field first:** a one-line summary of the settings the answer depends on (sowing date, soil, field type,
-  waterings) sits above the answer; Change opens large tap choices.
-- **Three strategy cards:** keep today's rice → bare field; the best legume (mung bean or peanut); the best other
-  crop (sunn hemp or field corn). Each card shows the odds ("survived 18 of 25 seasons"), the odds in years that
-  look like this one, the latest safe sowing date and the days left, the effect on the soil, a confidence badge,
-  what the data cannot see, and what to ask the local extension officer.
+- **Pick, set, see:** a one-line summary of everything the answer depends on (sowing time, soil, field type,
+  waterings, and the weather to test) sits above the answer; Change opens large tap choices.
+- **Income first:** the summary recommends the crop that earns most among the crops that are safe (survived at least
+  4 years in 5), or says plainly that no crop to sell is safe and how much watering would fix it.
+- **Ten crops to choose from:** mung bean, peanut, soybean, field corn, sweet corn, sesame, watermelon, chili,
+  shallot and sunn hemp, plus leaving the field bare. Each choice shows its average income per rai (or "no income",
+  or "no reference price yet" where no official farm-gate price was found) and years survived. The picked crop shows
+  the odds ("survived 18 of 25 years"), the odds in years that look like this one, the latest safe sowing date and the
+  days left, years survived by sowing month, the month failed crops died in, the effect on the soil, a confidence
+  badge, what the data cannot see, and what to ask the local extension officer.
 - **This season looks like…:** the dry season under way is fetched live from NASA POWER and matched with the three
   most similar past seasons.
-- **Time machine timeline:** every crop in every past season; tap one to see the soil-water chart and the day and
+- **Past years:** every crop in every past year (on phones, the picked crop first); tap one to see the soil-water chart and the day and
   cause of failure.
-- **Estimated income:** each cash-crop card shows what the harvest would sell for per rai at a standard
-  Office of Agricultural Economics price, averaged over the past seasons and in a good year. Income, not profit.
+- **Estimated income:** what the harvest would sell for per rai at a government farm-gate price (OAE; for shallot,
+  the Si Sa Ket provincial offices), averaged over the past years and in a good year. Income, not profit.
 - **NASA satellite checks:** the season under way shows NASA IMERG satellite rain beside the rain the model uses,
   and "soil now" from NASA SMAP (wetter or drier than the same date in past years). Under the timeline, a self-check
   says in how many past seasons the model's dry-down day matched NASA GLDAS soil moisture; it decides whether a card's
@@ -36,9 +40,9 @@ often would it have survived on the water in the soil and the rain that followed
 - **Share link:** the page address keeps the field and its settings, so "Copy link" sends someone the exact same answer
   (for example, to the local extension officer). Try the pilot area: https://salapa0.github.io/demeter-fieldshift/#lat=16.43&lon=102.83
 - **Times you can water:** tell the app how many waterings you can give (30 mm each, from a pond or shallow well)
-  and the odds update. Each crop card also says how many waterings that crop needs to survive 4 years in 5, or that
+  and the odds update. The picked crop also says how many waterings that crop needs to survive 4 years in 5, or that
   it is a crop for irrigated fields.
-- **What-if sliders:** less rain or more heat, applied to every past season (not a forecast).
+- **Weather to test:** less rain or more heat, applied to every past year (not a forecast), as one of the settings.
 - Opens in the phone's language (Thai on a Thai phone, otherwise English), with ไทย/EN one tap away and Buddhist-era
   years in Thai. The choice is remembered.
 
@@ -64,7 +68,9 @@ when the soil passes the crop's stress line, at most once a week, while the farm
 - **Not calibrated.** The thresholds and the groundwater number are starting values. Use the results to compare
   crops and sowing dates, not as exact probabilities.
 - **55 km cells.** The data is an average over a wide area; a single field can be wetter or drier.
-- **Some crop values are assumptions:** Thai mung bean stage lengths, all heat limits, every sunn hemp value.
+- **Some crop values are assumptions:** Thai mung bean stage lengths, all heat limits, every sunn hemp value, chili
+  (borrowed from FAO-56 sweet pepper) and shallot (borrowed from onion). Second rice (นาปรัง) is left out: flooded
+  rice needs a different water model.
 - Pests, disease, prices and labour are not modelled. Watering is a simple fixed 30 mm per turn; the cost and
   source of the water are not modelled. Soil texture and field type are the farmer's choice.
 

@@ -4,6 +4,7 @@ import {
   type CellData, type Crop, type FieldPosition, type OddsResult, type Outcome, type SeasonData, type SoilTexture,
   type SowingWindow, type Strategy, type WhatIf,
 } from './engine';
+import type { ImergCell } from './data';
 import { incomeEstimate, type IncomeEstimate } from './engine/income';
 import { analogOdds, analogsSplit, findAnalogs, type Analog, type CurrentSeason } from './engine/analog';
 import { DEFAULT_POSITION, DEFAULT_SOIL, DEFAULT_SOW, IRRIGATION_MM, SOIL_TEXTURES, WATERINGS_SEARCH_MAX } from './engine/constants';
@@ -28,8 +29,8 @@ function tone(odds: OddsResult | null): 'good' | 'mid' | 'low' | 'none' {
   return share >= 0.6 ? 'good' : share >= 0.3 ? 'mid' : 'low';
 }
 
-export function Results({ cell, lang, current, today = new Date(), initial = {}, onSettings }: {
-  cell: CellData; lang: Lang; current?: CurrentState; today?: Date;
+export function Results({ cell, lang, current, today = new Date(), initial = {}, onSettings, imerg }: {
+  cell: CellData; lang: Lang; current?: CurrentState; today?: Date; imerg?: ImergCell | null;
   initial?: Partial<Settings>; onSettings?: (s: Settings) => void;
 }) {
   const crops = useMemo(loadCrops, []);
@@ -74,6 +75,7 @@ export function Results({ cell, lang, current, today = new Date(), initial = {},
       <Summary strategies={strategies} crops={crops} windows={windows} lang={lang} today={today} whatIfDesc={whatIfDesc}
         needs={needs} waterings={waterings} />
       <AnalogLine current={current} analogs={analogs} lang={lang} />
+      <SatelliteRain current={current} imerg={imerg} lang={lang} />
 
       <div className="card inputs">
         <label>{T('input.sow')}
@@ -198,6 +200,21 @@ function AnalogLine({ current, analogs, lang }: { current?: CurrentState; analog
     <p className="analog-line" data-testid="analog-line" title={t(lang, 'analog.how')}>
       <IconHistory />
       <span>{t(lang, 'analog.line', { date: asOf, years })}</span>
+    </p>
+  );
+}
+
+/** IMERG satellite rain beside the model's (POWER) rain over the same days: an independent check on the input. */
+function SatelliteRain({ current, imerg, lang }: { current?: CurrentState; imerg?: ImergCell | null; lang: Lang }) {
+  if (!imerg || !current || typeof current !== 'object' || current.start !== imerg.start) return null;
+  const dayOf = (iso: string) => Math.round((Date.parse(`${iso}T00:00:00Z`) - Date.parse(`${imerg.start}T00:00:00Z`)) / 86400000);
+  const end = Math.min(dayOf(current.asOf), dayOf(imerg.asOf), current.rain.length - 1, imerg.rain.length - 1);
+  if (end < 0) return null;
+  const total = (xs: (number | null)[]) => Math.round(xs.slice(0, end + 1).reduce<number>((a, x) => a + (x ?? 0), 0));
+  const to = formatDate(new Date(Date.parse(`${imerg.start}T00:00:00Z`) + end * 86400000), lang);
+  return (
+    <p className="analog-line is-quiet" data-testid="imerg-line" title={t(lang, 'imerg.how')}>
+      {t(lang, 'imerg.line', { sat: total(imerg.rain), model: total(current.rain), date: to })}
     </p>
   );
 }

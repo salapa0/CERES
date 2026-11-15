@@ -5,6 +5,8 @@ on:
     branches: [main]
   pull_request:
   workflow_dispatch:
+  schedule:
+    - cron: '30 1 * * *' # daily refresh of the IMERG satellite rain; keeps the site current with no one on duty
 
 permissions:
   contents: read
@@ -29,6 +31,14 @@ jobs:
         working-directory: web
       - run: npm test
         working-directory: web
+      - run: python3 -m unittest test_build_imerg
+        working-directory: pipeline
+      # F14: satellite rain for this season. Allowed to fail: without the file the app hides the line.
+      - name: Fetch IMERG satellite rain
+        continue-on-error: true
+        env:
+          EARTHDATA_TOKEN: ${{ secrets.EARTHDATA_TOKEN }}
+        run: python3 pipeline/build_imerg.py
       - run: npm run build
         working-directory: web
       - uses: actions/upload-pages-artifact@v3

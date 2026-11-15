@@ -1,6 +1,7 @@
+import datetime as dt
 import unittest
 
-from build_smap import cell_means, index_range, mean_of, parse_rows
+from build_smap import cell_means, index_range, mean_of, parse_rows, past_dates
 
 # Real NSIDC cloud OPeNDAP ASCII response (coordinates of a SPL4SMGP v8 granule, every 200th row).
 COORDS = """Dataset: SMAP_L4_SM_gph_20261110T223000_Vv8013_001.h5
@@ -29,6 +30,17 @@ class SmapTest(unittest.TestCase):
         got = cell_means(values, lats, lons, cells, 0.25, 0.3125)
         self.assertAlmostEqual(got["a"], 0.3)
         self.assertIsNone(got["b"])
+
+    def test_past_dates_are_the_same_day_in_each_earlier_year_from_smaps_start(self):
+        got = past_dates(dt.date(2026, 11, 14))
+        self.assertEqual([y for y, _ in got], list(range(2015, 2026)))
+        self.assertTrue(all(d == dt.date(y, 11, 14) for y, d in got))
+
+    def test_29_february_falls_back_to_28_february_in_a_common_year(self):
+        got = dict(past_dates(dt.date(2028, 2, 29)))
+        self.assertEqual(got[2027], dt.date(2027, 2, 28))
+        self.assertEqual(got[2024], dt.date(2024, 2, 29))
+        self.assertNotIn(2015, got)  # SMAP starts 31 Mar 2015
 
     def test_mean_of_granules(self):
         self.assertEqual(mean_of([{"a": 0.2, "b": None}, {"a": 0.4, "b": None}]), {"a": 0.30000000000000004, "b": None})
